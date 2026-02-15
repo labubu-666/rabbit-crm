@@ -73,4 +73,4 @@ jobs:
 
       - name: Begin rollout
         run: |
-          curl -H "Authorization: Bearer mytoken" p1.tail37b43f.ts.net:8080/v1/update
+          curl -H "Authorization: Bearer mytoken" archlinux-headless-1.tail37b43f.ts.net:18181/v1/update

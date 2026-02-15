@@ -1,0 +1,3 @@
+services:
+  rabbithole:
+    image: labubu-666/rabbithole:latest

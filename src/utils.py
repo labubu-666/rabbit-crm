@@ -26,10 +26,12 @@ def create_folder(path: Union[str, Path]) -> Path:
 
     return p
 
+
 def create_dist_folder(path: Union[str, Path] = "dist") -> Path:
     p = create_folder("dist")
 
     return p
+
 
 def _parse_frontmatter(text: str) -> Tuple[dict, str]:
     if not text.startswith("---"):
@@ -63,7 +65,6 @@ def _parse_frontmatter(text: str) -> Tuple[dict, str]:
         logger.warning("Failed to parse YAML frontmatter: %s", exc)
         metadata = {"_frontmatter_error": str(exc)}
 
-
     return metadata, rest
 
 
@@ -75,7 +76,9 @@ def load_pages(path: Union[str, Path] = "pages") -> Dict[str, Page]:
     """
     pages_dir = Path(path)
     if not pages_dir.exists() or not pages_dir.is_dir():
-        logger.info("Pages directory %s does not exist; returning empty dict", pages_dir)
+        logger.info(
+            "Pages directory %s does not exist; returning empty dict", pages_dir
+        )
         return {}
 
     result: Dict[str, Page] = {}
@@ -121,14 +124,21 @@ def load_pages(path: Union[str, Path] = "pages") -> Dict[str, Page]:
             )
 
             if key in result:
-                logger.warning("Duplicate page key %s - %s will override previous %s", key, page.source_path, result[key].source_path)
+                logger.warning(
+                    "Duplicate page key %s - %s will override previous %s",
+                    key,
+                    page.source_path,
+                    result[key].source_path,
+                )
 
             result[key] = page
 
     return result
 
 
-def build_site(pages_dir: Union[str, Path] = "pages", dist_dir: Union[str, Path] = "dist") -> Path:
+def build_site(
+    pages_dir: Union[str, Path] = "pages", dist_dir: Union[str, Path] = "dist"
+) -> Path:
     """Load pages from `pages_dir`, render them to HTML files and write into `dist_dir`.
 
     Each page will be written to <dist_dir>/<rel_path>.html where rel_path is the
@@ -167,7 +177,12 @@ def build_site(pages_dir: Union[str, Path] = "pages", dist_dir: Union[str, Path]
             try:
                 target.write_text(redirect_html, encoding="utf-8")
             except Exception as exc:
-                logger.warning("Failed to write redirect %s -> %s: %s", page.source_path, target, exc)
+                logger.warning(
+                    "Failed to write redirect %s -> %s: %s",
+                    page.source_path,
+                    target,
+                    exc,
+                )
             # skip the normal write/copy logic for the index page
             continue
 
@@ -177,7 +192,11 @@ def build_site(pages_dir: Union[str, Path] = "pages", dist_dir: Union[str, Path]
                 # copy HTML file verbatim
                 shutil.copyfile(page.source_path, str(target))
             else:
-                title = page.metadata.get("title") if isinstance(page.metadata, dict) else None
+                title = (
+                    page.metadata.get("title")
+                    if isinstance(page.metadata, dict)
+                    else None
+                )
                 if not title:
                     # fallback title
                     title = key.split("/")[-1]
@@ -196,7 +215,8 @@ def build_site(pages_dir: Union[str, Path] = "pages", dist_dir: Union[str, Path]
 
                 target.write_text(template_html, encoding="utf-8")
         except Exception as exc:
-            logger.warning("Failed to write page %s -> %s: %s", page.source_path, target, exc)
+            logger.warning(
+                "Failed to write page %s -> %s: %s", page.source_path, target, exc
+            )
 
     return dist_p
-

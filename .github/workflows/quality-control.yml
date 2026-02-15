@@ -1,0 +1,55 @@
+name: Quality control
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+  pull_request_review_comment:
+    types: [created, edited]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  commitlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Install commitlint
+        run: npm install --save-dev @commitlint/config-conventional @commitlint/cli
+
+      - name: Validate current commit
+        run: npx commitlint --from HEAD~1 --to HEAD
+
+      - name: Validate PR commits
+        if: github.event_name == 'pull_request'
+        run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to HEAD
+
+  unit-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@v7.3.0
+        name: Setup uv
+
+      - name: Install dependencies
+        run: |
+          uv sync --dev
+      - name: Test
+        run: |
+          uv run pytest --junitxml=pytest.xml --cov-report=term-missing:skip-covered --cov=src tests/ | tee pytest-coverage.txt
+
+      - name: Generate coverage report
+        uses: MishaKav/pytest-coverage-comment@v1.2.0
+        with:
+          pytest-coverage-path: ./pytest-coverage.txt
+          junitxml-path: ./pytest.xml
+
+

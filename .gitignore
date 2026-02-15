@@ -4,6 +4,7 @@
 # Project specific
 __pycache__/
 .venv/
+dist/
 
 .coverage
 pytest.xml

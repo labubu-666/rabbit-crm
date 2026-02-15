@@ -1,0 +1,61 @@
+name: Build and publish Docker image
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    name: Build (and optionally publish)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU (for multi-arch builds)
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Prepare image tags
+        id: prepare-tags
+        run: |
+          # GHCR tags (owner/rabbithole)
+          GHCR_BASE="ghcr.io/${{ github.repository_owner }}/rabbithole"
+          GHCR_TAGS="${GHCR_BASE}:${{ github.sha }}"
+          if [ "${GITHUB_REF##*/}" = "main" ]; then
+            GHCR_TAGS="${GHCR_TAGS},${GHCR_BASE}:latest"
+          fi
+          echo "GHCR_TAGS=$GHCR_TAGS" >> $GITHUB_ENV
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        if: ${{ secrets.GITHUB_TOKEN != '' }}
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and (optionally) push image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          # Only push when this is a push event and GHCR credentials are available
+          push: ${{ github.event_name == 'push' && secrets.GITHUB_TOKEN != '' }}
+          tags: ${{ env.GHCR_TAGS }}
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/rabbithole:cache
+          cache-to: type=inline
+
+      - name: Show built image info
+        if: ${{ always() }}
+        run: |
+          echo "GHCR_TAGS=${GHCR_TAGS:-(not set)}"

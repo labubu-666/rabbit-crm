@@ -18,7 +18,6 @@ class TestCreateFolder:
         result2 = create_folder(d)
         assert result2 == result
 
-
     def test_create_folder_raises_when_file_exists(self, tmp_path):
         f = tmp_path / "dist"
         f.write_text("I am a file")

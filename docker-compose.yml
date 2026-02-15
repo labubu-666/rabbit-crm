@@ -1,3 +1,19 @@
 services:
   rabbithole:
-    image: labubu-666/rabbithole:latest
+    image: ghcr.io/labubu-666/rabbithole:latest
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    ports:
+      - "80:80"
+  watchtower:
+    command: --debug --http-api-update
+    environment:
+      - WATCHTOWER_DEBUG=true
+      - WATCHTOWER_HTTP_API_TOKEN=mytoken
+    image: nickfedor/watchtower:1.14.1
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock

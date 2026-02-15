@@ -52,4 +52,14 @@ jobs:
           pytest-coverage-path: ./pytest-coverage.txt
           junitxml-path: ./pytest.xml
 
+  tailscale:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Tailscale test
+        uses: tailscale/github-action@v4.1.1
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          ping: p1.tail37b43f.ts.net
+          tags: tag:rabbithole
 

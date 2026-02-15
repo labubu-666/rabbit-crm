@@ -10,6 +10,8 @@ services:
     environment:
       - WATCHTOWER_DEBUG=true
       - WATCHTOWER_HTTP_API_TOKEN=mytoken
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_LABEL_ENABLE=true
     image: nickfedor/watchtower:1.14.1
     labels:
       - "com.centurylinklabs.watchtower.enable=false"

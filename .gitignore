@@ -9,3 +9,4 @@ dist/
 .coverage
 pytest.xml
 pytest-coverage.txt
+rabbithole.iml

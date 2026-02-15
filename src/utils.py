@@ -1,12 +1,14 @@
 import logging
-import re
 import html as html_module
 
 from pathlib import Path
 from typing import Union, Dict, Tuple
 
 import yaml
-from pydantic import BaseModel, Field
+import shutil
+
+from src.markdown import _render_markdown
+from src.schema import Page
 
 logger = logging.getLogger(__name__)
 
@@ -28,15 +30,6 @@ def create_dist_folder(path: Union[str, Path] = "dist") -> Path:
     p = create_folder("dist")
 
     return p
-
-class Page(BaseModel):
-    metadata: dict = Field(default_factory=dict)
-    content: str = ""
-    html: str = ""
-    # helpful fields for consumers
-    source_path: str = ""
-    rel_path: str = ""
-
 
 def _parse_frontmatter(text: str) -> Tuple[dict, str]:
     if not text.startswith("---"):
@@ -74,29 +67,6 @@ def _parse_frontmatter(text: str) -> Tuple[dict, str]:
     return metadata, rest
 
 
-def _render_markdown(md_text: str) -> str:
-    # Minimal fallback renderer: escape HTML, convert headings, links, and paragraphs
-    text = html_module.escape(md_text)
-
-    # headings
-    def _repl_h(m):
-        level = len(m.group(1))
-        content = m.group(2).strip()
-        return f"<h{level}>{content}</h{level}>"
-
-    text = re.sub(r'^(#{1,6})\s+(.*)$', _repl_h, text, flags=re.M)
-
-    # links [text](url)
-    text = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", lambda m: f"<a href=\"{html_module.escape(m.group(2))}\">{m.group(1)}</a>", text)
-
-    # paragraphs: split on two or more newlines
-    parts = re.split(r"\n\s*\n", text.strip())
-    parts = [p.replace('\n', '<br/>') for p in parts if p.strip()]
-    html = "".join(f"<p>{p}</p>" for p in parts)
-
-    return html
-
-
 def load_pages(path: Union[str, Path] = "pages") -> Dict[str, Page]:
     """Recursively load markdown pages from `path`, parse frontmatter and render HTML.
 
@@ -110,7 +80,7 @@ def load_pages(path: Union[str, Path] = "pages") -> Dict[str, Page]:
 
     result: Dict[str, Page] = {}
 
-    patterns = ("*.md", "*.markdown")
+    patterns = ("*.md", "*.markdown", "*.html", "*.htm")
     for pattern in patterns:
         for fp in pages_dir.rglob(pattern):
             # skip hidden files and directories
@@ -129,8 +99,15 @@ def load_pages(path: Union[str, Path] = "pages") -> Dict[str, Page]:
                 logger.warning("Failed to read %s: %s", fp, exc)
                 continue
 
-            metadata, content = _parse_frontmatter(raw)
-            html = _render_markdown(content)
+            # If the file is an HTML file, do not attempt to parse frontmatter
+            # or render it as markdown — treat the content as already-rendered HTML
+            if fp.suffix.lower() in (".html", ".htm"):
+                metadata = {}
+                content = raw
+                html = raw
+            else:
+                metadata, content = _parse_frontmatter(raw)
+                html = _render_markdown(content)
 
             rel_path = fp.relative_to(pages_dir).with_suffix("")
             key = rel_path.as_posix()
@@ -168,13 +145,44 @@ def build_site(pages_dir: Union[str, Path] = "pages", dist_dir: Union[str, Path]
         # target path is dist/<key>.html
         target = dist_p.joinpath(f"{key}.html")
         target.parent.mkdir(parents=True, exist_ok=True)
+        # Always make the site root (index) a redirect to the German index
+        # This ensures that visiting / will land on /de/index.html
+        if key == "index":
+            redirect_html = """<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="refresh" content="0; url=/de/index.html">
+  <meta name="robots" content="noindex">
+  <link rel="canonical" href="/de/index.html">
+  <title>Redirecting...</title>
+  <script>window.location.replace('/de/index.html');</script>
+</head>
+<body>
+  Redirecting to <a href="/de/index.html">/de/index.html</a>.
+</body>
+</html>
+"""
 
-        title = page.metadata.get("title") if isinstance(page.metadata, dict) else None
-        if not title:
-            # fallback title
-            title = key.split("/")[-1]
+            try:
+                target.write_text(redirect_html, encoding="utf-8")
+            except Exception as exc:
+                logger.warning("Failed to write redirect %s -> %s: %s", page.source_path, target, exc)
+            # skip the normal write/copy logic for the index page
+            continue
 
-        full_html = f"""<!doctype html>
+        src_suffix = Path(page.source_path).suffix.lower()
+        try:
+            if src_suffix in (".html", ".htm"):
+                # copy HTML file verbatim
+                shutil.copyfile(page.source_path, str(target))
+            else:
+                title = page.metadata.get("title") if isinstance(page.metadata, dict) else None
+                if not title:
+                    # fallback title
+                    title = key.split("/")[-1]
+
+                template_html = f"""<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -186,8 +194,7 @@ def build_site(pages_dir: Union[str, Path] = "pages", dist_dir: Union[str, Path]
 </html>
 """
 
-        try:
-            target.write_text(full_html, encoding="utf-8")
+                target.write_text(template_html, encoding="utf-8")
         except Exception as exc:
             logger.warning("Failed to write page %s -> %s: %s", page.source_path, target, exc)
 

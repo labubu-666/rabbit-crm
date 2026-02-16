@@ -61,6 +61,7 @@ jobs:
           echo "GHCR_TAGS=${GHCR_TAGS:-(not set)}"
 
   deploy:
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - name: Tailscale setup

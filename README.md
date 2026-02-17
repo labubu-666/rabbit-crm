@@ -1,6 +1,10 @@
 # rabbithole
 
-# Build
+# Dev
+
+    docker compose up
+
+# Build natively
 
     uv run rabbithole build
 

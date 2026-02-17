@@ -6,8 +6,10 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "click>=8.1.0",
+    "libsass>=0.23.0",
     "pydantic>=2.12.5",
     "pyyaml>=6.0.3",
+    "watchdog[watchmedo]>=6.0.0",
 ]
 
 [project.scripts]
@@ -24,8 +26,7 @@ packages = ["src"]
 dev = [
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
-    "ruff>=0.8.0",
-    "watchdog>=6.0.0",
+    "ruff>=0.8.0"
 ]
 
 [tool.pytest]

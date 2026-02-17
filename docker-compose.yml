@@ -7,13 +7,18 @@ services:
       - ./pages:/app/pages
       - ./src:/app/src
       - ./dist:/app/dist
+      - /app/.venv
     command: >
-      sh -c "watchmedo shell-command
-      --patterns='*.py;*.md;*.txt'
+      sh -c "uv run watchmedo shell-command
+      --patterns='*.py;*.md;*.txt;*.html'
+      --ignore-patterns='__pycache__'
       --recursive
+      --wait
       --command='uv run rabbithole build -p pages -d dist'"
     environment:
       - PYTHONUNBUFFERED=1
+    stdin_open: true
+    tty: true
 
   nginx:
     image: nginx:stable-alpine

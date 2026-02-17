@@ -69,7 +69,7 @@ jobs:
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
-          ping: p1.tail37b43f.ts.net
+          ping: archlinux-headless-1.tail37b43f.ts.net
           tags: tag:rabbithole
 
       - name: Begin rollout

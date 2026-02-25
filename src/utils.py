@@ -144,12 +144,27 @@ def build_site(
     Each page will be written to <dist_dir>/<rel_path>.html where rel_path is the
     POSIX relative path of the source file without extension (e.g., `de/index`).
 
+    Args:
+        pages_dir: Directory containing source pages
+        dist_dir: Directory to write output files
+
     Returns the Path to the distribution directory.
     """
     pages_dir_p = Path(pages_dir)
+    dist_p = Path(dist_dir)
+    
+    if dist_p.exists():
+        shutil.rmtree(dist_p)
+    
     dist_p = create_dist_folder(dist_dir)
 
     pages = load_pages(pages_dir_p)
+    
+    if not pages:
+        logger.info("No pages found to build")
+        return dist_p
+    
+    logger.info(f"Found {len(pages)} page(s) to build")
 
     for key, page in pages.items():
         # target path is dist/<key>.html
@@ -176,6 +191,7 @@ def build_site(
 
             try:
                 target.write_text(redirect_html, encoding="utf-8")
+                logger.info(f"  {page.source_path} -> {target} (redirect)")
             except Exception as exc:
                 logger.warning(
                     "Failed to write redirect %s -> %s: %s",
@@ -191,6 +207,7 @@ def build_site(
             if src_suffix in (".html", ".htm"):
                 # copy HTML file verbatim
                 shutil.copyfile(page.source_path, str(target))
+                logger.info(f"  {page.source_path} -> {target}")
             else:
                 title = (
                     page.metadata.get("title")
@@ -214,6 +231,7 @@ def build_site(
 """
 
                 target.write_text(template_html, encoding="utf-8")
+                logger.info(f"  {page.source_path} -> {target}")
         except Exception as exc:
             logger.warning(
                 "Failed to write page %s -> %s: %s", page.source_path, target, exc

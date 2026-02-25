@@ -9,6 +9,9 @@ from watchdog.events import FileSystemEventHandler
 
 from src.utils import build_site
 
+logging.basicConfig(
+    level=logging.DEBUG,
+)
 logger = logging.getLogger(__name__)
 
 
@@ -68,7 +71,10 @@ def cli():
 )
 def build(pages_dir: str, dist_dir: str):
     """Build the site into the dist directory."""
+    
+    logger.info(f"Building site from {pages_dir} to {dist_dir}...")
     build_site(pages_dir, dist_dir)
+    logger.info("Build complete!")
 
 
 @cli.command()
@@ -88,17 +94,10 @@ def serve(pages_dir: str, dist_dir: str, port: int, host: str):
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
-    # Initial build
+    # Initial build with clean flag to remove old files
     logger.info(f"Building site from {pages_dir} to {dist_dir}...")
     build_site(pages_dir, dist_dir)
     logger.info("Initial build complete!")
-
-    # Set up file watcher
-    event_handler = RebuildHandler(pages_dir, dist_dir)
-    observer = Observer()
-    observer.schedule(event_handler, pages_dir, recursive=True)
-    observer.start()
-    logger.info(f"Watching {pages_dir} for changes...")
 
     # Set up HTTP server in the dist directory
     dist_path = Path(dist_dir).resolve()
@@ -122,8 +121,18 @@ def serve(pages_dir: str, dist_dir: str, port: int, host: str):
             # Custom logging format
             logger.info(f"{self.address_string()} - {format % args}")
 
+    # Set up file watcher after initial build to avoid triggering on dist creation
+    event_handler = RebuildHandler(pages_dir, dist_dir)
+    observer = Observer()
+    observer.schedule(event_handler, pages_dir, recursive=True)
+    observer.start()
+    logger.info(f"Watching {pages_dir} for changes...")
+
     try:
-        with socketserver.TCPServer((host, port), CustomHTTPRequestHandler) as httpd:
+        class ReusableTCPServer(socketserver.TCPServer):
+            allow_reuse_address = True
+
+        with ReusableTCPServer((host, port), CustomHTTPRequestHandler) as httpd:
             logger.info(f"Serving at http://{host}:{port}/web")
             logger.info("Press Ctrl+C to stop")
             httpd.serve_forever()

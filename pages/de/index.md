@@ -1,7 +1,7 @@
 ---
-title: "Index"
+title: "Hello world"
 ---
 
 # Index
 
-- [Starfish prime](./starfish-prime.html)
+- [Hello world](./hello-world.html)

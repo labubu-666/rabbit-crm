@@ -8,6 +8,7 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 COPY README.md README.md
 COPY src/ ./src
+COPY templates/ ./templates
 COPY pages/ ./pages
 
 # Sync dependencies (install dev deps) and build the static site into `dist`

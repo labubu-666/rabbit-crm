@@ -1,5 +1,0 @@
----
-title: "Recycling"
----
-
-abc boxcar

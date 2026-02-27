@@ -1,5 +1,9 @@
 # rabbithole
 
+# Quick start
+
+    uv add git+ssh://git@github.com/labubu-666/rabbithole.git@main 
+
 # Dev
 
     docker compose up

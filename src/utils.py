@@ -82,7 +82,7 @@ def load_pages(path: Union[str, Path] = "pages") -> Dict[str, Page]:
     pages_dir = Path(path)
     if not pages_dir.exists() or not pages_dir.is_dir():
         logger.info(
-            "Pages directory %s does not exist; returning empty dict", pages_dir
+            "Pages directory %s does not exist; returning empty dict", pages_dir.resolve()
         )
         return {}
 
@@ -104,7 +104,7 @@ def load_pages(path: Union[str, Path] = "pages") -> Dict[str, Page]:
             try:
                 raw = fp.read_text(encoding="utf-8", errors="replace")
             except Exception as exc:
-                logger.warning("Failed to read %s: %s", fp, exc)
+                logger.warning("Failed to read %s: %s", fp.resolve(), exc)
                 continue
 
             # If the file is an HTML file, do not attempt to parse frontmatter
@@ -132,8 +132,8 @@ def load_pages(path: Union[str, Path] = "pages") -> Dict[str, Page]:
                 logger.warning(
                     "Duplicate page key %s - %s will override previous %s",
                     key,
-                    page.source_path,
-                    result[key].source_path,
+                    Path(page.source_path).resolve(),
+                    Path(result[key].source_path).resolve(),
                 )
 
             result[key] = page
@@ -151,14 +151,14 @@ def compile_and_copy_styles(
         dist_dir: Directory to write output CSS files
         
     Returns:
-        The relative path to the CSS file (e.g., 'styles/index.f522ae8f.css')
+        The relative path to the CSS file (e.g., 'styles/index.f522ae8f.css'), or None if styles don't exist
     """
     styles_dir_p = Path(styles_dir)
     dist_p = Path(dist_dir)
     
     if not styles_dir_p.exists():
-        logger.warning(f"Styles directory {styles_dir_p} does not exist, skipping styles compilation")
-        return
+        logger.warning(f"Styles directory {styles_dir_p.resolve()} does not exist, skipping styles compilation")
+        return None
     
     # Create styles subdirectory in dist
     dist_styles_p = dist_p / "styles"
@@ -169,12 +169,12 @@ def compile_and_copy_styles(
     css_output = styles_dir_p / "index.css"
     
     if not scss_input.exists():
-        logger.warning(f"SCSS file {scss_input} does not exist, skipping styles compilation")
-        return
+        logger.warning(f"SCSS file {scss_input.resolve()} does not exist, skipping styles compilation")
+        return None
     
     try:
         # Run sass command using subprocess
-        logger.info(f"Compiling SCSS: {scss_input} -> {css_output}")
+        logger.info(f"Compiling SCSS: {scss_input.resolve()} -> {css_output.resolve()}")
         result = subprocess.run(
             ["sass", str(scss_input), str(css_output)],
             capture_output=True,
@@ -206,9 +206,21 @@ def compile_and_copy_styles(
     css_filename = f"index.{hash_suffix}.css"
     css_dest = dist_styles_p / css_filename
     
+    # Verify source file exists before copying
+    if not css_output.exists():
+        logger.error(f"CSS file {css_output.resolve()} does not exist after compilation!")
+        raise FileNotFoundError(f"CSS file {css_output.resolve()} not found")
+    
     try:
         shutil.copyfile(str(css_output), str(css_dest))
-        logger.info(f"Copied styles: {css_output} -> {css_dest}")
+        logger.info(f"Copied styles: {css_output.resolve()} -> {css_dest.resolve()}")
+        
+        # Verify the file was actually copied
+        if not css_dest.exists():
+            logger.error(f"CSS file was not copied to {css_dest.resolve()}!")
+            raise RuntimeError(f"Failed to copy CSS to {css_dest.resolve()}")
+        
+        logger.info(f"Verified CSS file exists at: {css_dest.resolve()}")
     except Exception as exc:
         logger.error(f"Failed to copy CSS file: {exc}")
         raise
@@ -218,7 +230,9 @@ def compile_and_copy_styles(
 
 
 def build_site(
-    pages_dir: Union[str, Path] = "pages", dist_dir: Union[str, Path] = "dist"
+    pages_dir: Union[str, Path] = "pages", 
+    dist_dir: Union[str, Path] = "dist",
+    styles_dir: Union[str, Path] = "styles"
 ) -> Path:
     """Load pages from `pages_dir`, render them to HTML files and write into `dist_dir`.
 
@@ -228,19 +242,17 @@ def build_site(
     Args:
         pages_dir: Directory containing source pages
         dist_dir: Directory to write output files
+        styles_dir: Directory containing styles
 
     Returns the Path to the distribution directory.
     """
     pages_dir_p = Path(pages_dir)
     dist_p = Path(dist_dir)
     
-    if dist_p.exists():
-        shutil.rmtree(dist_p)
-    
     dist_p = create_dist_folder(dist_dir)
 
     # Compile and copy styles with cache-busting
-    css_path = compile_and_copy_styles("styles", dist_dir)
+    css_path = compile_and_copy_styles(styles_dir, dist_dir)
 
     pages = load_pages(pages_dir_p)
     
@@ -250,10 +262,10 @@ def build_site(
     
     logger.info(f"Found {len(pages)} page(s) to build")
     
-    # Use current working directory for templates when used as a package
+    # Use current working directory for templates when used as a CLI
     template_dir = Path.cwd() / "templates"
     env = Environment(
-        loader=FileSystemLoader(template_dir),
+        loader=FileSystemLoader(str(template_dir)),
         autoescape=select_autoescape(['html', 'xml'])
     )
     template = env.get_template("template.html")
@@ -283,12 +295,12 @@ def build_site(
 
             try:
                 target.write_text(redirect_html, encoding="utf-8")
-                logger.info(f"  {page.source_path} -> {target} (redirect)")
+                logger.info(f"  {Path(page.source_path).resolve()} -> {target.resolve()} (redirect)")
             except Exception as exc:
                 logger.warning(
                     "Failed to write redirect %s -> %s: %s",
-                    page.source_path,
-                    target,
+                    Path(page.source_path).resolve(),
+                    target.resolve(),
                     exc,
                 )
             # skip the normal write/copy logic for the index page
@@ -299,7 +311,7 @@ def build_site(
             if src_suffix in (".html", ".htm"):
                 # copy HTML file verbatim
                 shutil.copyfile(page.source_path, str(target))
-                logger.info(f"  {page.source_path} -> {target}")
+                logger.info(f"  {Path(page.source_path).resolve()} -> {target.resolve()}")
             else:
                 title = (
                     page.metadata.get("title")
@@ -312,8 +324,12 @@ def build_site(
 
                 # Calculate relative path to CSS from this page
                 # For pages in subdirectories, we need to go up levels
-                depth = len(Path(key).parts) - 1
-                css_rel_path = "../" * depth + css_path if depth > 0 else css_path
+                # Only calculate css_rel_path if css_path exists
+                if css_path:
+                    depth = len(Path(key).parts) - 1
+                    css_rel_path = "../" * depth + css_path if depth > 0 else css_path
+                else:
+                    css_rel_path = None
 
                 # Render using Jinja2 template
                 rendered_html = template.render(
@@ -322,10 +338,10 @@ def build_site(
                     css_path=css_rel_path
                 )
                 target.write_text(rendered_html, encoding="utf-8")
-                logger.info(f"  {page.source_path} -> {target}")
+                logger.info(f"  {Path(page.source_path).resolve()} -> {target.resolve()}")
         except Exception as exc:
             logger.warning(
-                "Failed to write page %s -> %s: %s", page.source_path, target, exc
+                "Failed to write page %s -> %s: %s", Path(page.source_path).resolve(), target.resolve(), exc
             )
 
     return dist_p

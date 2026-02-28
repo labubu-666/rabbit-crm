@@ -18,9 +18,10 @@ logger = logging.getLogger(__name__)
 class RebuildHandler(FileSystemEventHandler):
     """File system event handler that triggers site rebuild on changes."""
 
-    def __init__(self, pages_dir: str, dist_dir: str):
+    def __init__(self, pages_dir: str, dist_dir: str, styles_dir: str):
         self.pages_dir = pages_dir
         self.dist_dir = dist_dir
+        self.styles_dir = styles_dir
         self.last_rebuild = 0
         self.debounce_seconds = 1.0  # Debounce to avoid multiple rapid rebuilds
 
@@ -47,9 +48,9 @@ class RebuildHandler(FileSystemEventHandler):
         if current_time - self.last_rebuild < self.debounce_seconds:
             return
 
-        logger.info(f"Detected change in {event.src_path}, rebuilding...")
+        logger.info(f"Detected change in {Path(event.src_path).resolve()}, rebuilding...")
         try:
-            build_site(self.pages_dir, self.dist_dir)
+            build_site(self.pages_dir, self.dist_dir, self.styles_dir)
             self.last_rebuild = current_time
             logger.info("Rebuild complete!")
         except Exception as exc:
@@ -69,11 +70,14 @@ def cli():
 @click.option(
     "--dist-dir", "dist_dir", "-d", default="dist", help="Path to output dist directory"
 )
-def build(pages_dir: str, dist_dir: str):
+@click.option(
+    "--styles-dir", "styles_dir", "-s", default="styles", help="Path to styles directory"
+)
+def build(pages_dir: str, dist_dir: str, styles_dir: str):
     """Build the site into the dist directory."""
     
-    logger.info(f"Building site from {pages_dir} to {dist_dir}...")
-    build_site(pages_dir, dist_dir)
+    logger.info(f"Building site from {Path(pages_dir).resolve()} to {Path(dist_dir).resolve()}...")
+    build_site(pages_dir, dist_dir, styles_dir)
     logger.info("Build complete!")
 
 
@@ -84,9 +88,12 @@ def build(pages_dir: str, dist_dir: str):
 @click.option(
     "--dist-dir", "dist_dir", "-d", default="dist", help="Path to output dist directory"
 )
+@click.option(
+    "--styles-dir", "styles_dir", "-s", default="styles", help="Path to styles directory"
+)
 @click.option("--port", "-P", default=8000, help="Port to serve on")
 @click.option("--host", "-h", default="127.0.0.1", help="Host to bind to")
-def serve(pages_dir: str, dist_dir: str, port: int, host: str):
+def serve(pages_dir: str, dist_dir: str, styles_dir: str, port: int, host: str):
     """Serve the site and watch for changes, rebuilding when necessary."""
     # Configure logging
     logging.basicConfig(
@@ -95,8 +102,8 @@ def serve(pages_dir: str, dist_dir: str, port: int, host: str):
     )
 
     # Initial build with clean flag to remove old files
-    logger.info(f"Building site from {pages_dir} to {dist_dir}...")
-    build_site(pages_dir, dist_dir)
+    logger.info(f"Building site from {Path(pages_dir).resolve()} to {Path(dist_dir).resolve()}...")
+    build_site(pages_dir, dist_dir, styles_dir)
     logger.info("Initial build complete!")
 
     # Set up HTTP server in the dist directory
@@ -122,11 +129,12 @@ def serve(pages_dir: str, dist_dir: str, port: int, host: str):
             logger.info(f"{self.address_string()} - {format % args}")
 
     # Set up file watcher after initial build to avoid triggering on dist creation
-    event_handler = RebuildHandler(pages_dir, dist_dir)
+    event_handler = RebuildHandler(pages_dir, dist_dir, styles_dir)
     observer = Observer()
     observer.schedule(event_handler, pages_dir, recursive=True)
+    observer.schedule(event_handler, styles_dir, recursive=True)
     observer.start()
-    logger.info(f"Watching {pages_dir} for changes...")
+    logger.info(f"Watching {Path(pages_dir).resolve()} and {Path(styles_dir).resolve()} for changes...")
 
     try:
         class ReusableTCPServer(socketserver.TCPServer):

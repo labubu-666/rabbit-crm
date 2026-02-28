@@ -42,7 +42,29 @@ jobs:
       - name: Install dependencies
         run: |
           uv sync --dev
+          npm install sass -g
+          echo "$(npm config get prefix)/bin" >> $GITHUB_PATH
 
       - name: Test
         run: |
           uv run pytest
+
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@v7.3.0
+        name: Setup uv
+
+      - name: Install dependencies
+        run: |
+          uv sync --dev
+          npm i sass -g
+          echo "$(npm config get prefix)/bin" >> $GITHUB_PATH
+
+      - name: Test
+        run: |
+          uv run rabbit build

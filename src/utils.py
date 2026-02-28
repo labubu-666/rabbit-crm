@@ -1,4 +1,5 @@
 import logging
+import subprocess
 
 from pathlib import Path
 from typing import Union, Dict, Tuple
@@ -6,6 +7,7 @@ from typing import Union, Dict, Tuple
 import yaml
 import shutil
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from checksumdir import dirhash
 
 from src.markdown import _render_markdown
 from src.schema import Page, Frontmatter
@@ -139,6 +141,82 @@ def load_pages(path: Union[str, Path] = "pages") -> Dict[str, Page]:
     return result
 
 
+def compile_and_copy_styles(
+    styles_dir: Union[str, Path] = "styles", dist_dir: Union[str, Path] = "dist"
+) -> str:
+    """Compile SCSS to CSS using subprocess and copy to dist with cache-busting hash.
+    
+    Args:
+        styles_dir: Directory containing SCSS files
+        dist_dir: Directory to write output CSS files
+        
+    Returns:
+        The relative path to the CSS file (e.g., 'styles/index.f522ae8f.css')
+    """
+    styles_dir_p = Path(styles_dir)
+    dist_p = Path(dist_dir)
+    
+    if not styles_dir_p.exists():
+        logger.warning(f"Styles directory {styles_dir_p} does not exist, skipping styles compilation")
+        return
+    
+    # Create styles subdirectory in dist
+    dist_styles_p = dist_p / "styles"
+    dist_styles_p.mkdir(parents=True, exist_ok=True)
+    
+    # Compile SCSS to CSS using subprocess
+    scss_input = styles_dir_p / "index.scss"
+    css_output = styles_dir_p / "index.css"
+    
+    if not scss_input.exists():
+        logger.warning(f"SCSS file {scss_input} does not exist, skipping styles compilation")
+        return
+    
+    try:
+        # Run sass command using subprocess
+        logger.info(f"Compiling SCSS: {scss_input} -> {css_output}")
+        result = subprocess.run(
+            ["sass", str(scss_input), str(css_output)],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        if result.stdout:
+            logger.debug(f"sass stdout: {result.stdout}")
+        logger.info(f"SCSS compilation successful")
+    except subprocess.CalledProcessError as exc:
+        logger.error(f"SCSS compilation failed: {exc.stderr}")
+        raise
+    except FileNotFoundError:
+        logger.error("sass command not found. Please install sass (e.g., 'npm install -g sass')")
+        raise
+    
+    # Generate hash for cache busting
+    try:
+        styles_hash = dirhash(str(styles_dir_p), 'md5', excluded_files=['.gitignore'])
+        # Use first 8 characters of hash for brevity
+        hash_suffix = styles_hash[:8]
+        logger.info(f"Generated styles hash: {hash_suffix}")
+    except Exception as exc:
+        logger.warning(f"Failed to generate hash for styles: {exc}, using timestamp")
+        import time
+        hash_suffix = str(int(time.time()))
+    
+    # Copy CSS to dist with hash suffix
+    css_filename = f"index.{hash_suffix}.css"
+    css_dest = dist_styles_p / css_filename
+    
+    try:
+        shutil.copyfile(str(css_output), str(css_dest))
+        logger.info(f"Copied styles: {css_output} -> {css_dest}")
+    except Exception as exc:
+        logger.error(f"Failed to copy CSS file: {exc}")
+        raise
+    
+    # Return relative path to CSS file for use in templates
+    return f"styles/{css_filename}"
+
+
 def build_site(
     pages_dir: Union[str, Path] = "pages", dist_dir: Union[str, Path] = "dist"
 ) -> Path:
@@ -160,6 +238,9 @@ def build_site(
         shutil.rmtree(dist_p)
     
     dist_p = create_dist_folder(dist_dir)
+
+    # Compile and copy styles with cache-busting
+    css_path = compile_and_copy_styles("styles", dist_dir)
 
     pages = load_pages(pages_dir_p)
     
@@ -229,8 +310,17 @@ def build_site(
                     # fallback title
                     title = key.split("/")[-1]
 
+                # Calculate relative path to CSS from this page
+                # For pages in subdirectories, we need to go up levels
+                depth = len(Path(key).parts) - 1
+                css_rel_path = "../" * depth + css_path if depth > 0 else css_path
+
                 # Render using Jinja2 template
-                rendered_html = template.render(title=title, content=page.html)
+                rendered_html = template.render(
+                    title=title, 
+                    content=page.html,
+                    css_path=css_rel_path
+                )
                 target.write_text(rendered_html, encoding="utf-8")
                 logger.info(f"  {page.source_path} -> {target}")
         except Exception as exc:

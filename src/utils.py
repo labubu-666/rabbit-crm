@@ -1,5 +1,4 @@
 import logging
-import html as html_module
 
 from pathlib import Path
 from typing import Union, Dict, Tuple
@@ -9,7 +8,7 @@ import shutil
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from src.markdown import _render_markdown
-from src.schema import Page
+from src.schema import Page, Frontmatter
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +33,7 @@ def create_dist_folder(path: Union[str, Path] = "dist") -> Path:
     return p
 
 
-def _parse_frontmatter(text: str) -> Tuple[dict, str]:
+def parse_frontmatter(text: str) -> Tuple[dict, str]:
     if not text.startswith("---"):
         return {}, text
 
@@ -60,11 +59,14 @@ def _parse_frontmatter(text: str) -> Tuple[dict, str]:
     try:
         metadata = yaml.safe_load(front) or {}
         if not isinstance(metadata, dict):
-            # Ensure a dict for consistency
-            metadata = {"_frontmatter": metadata}
-    except Exception as exc:  # keep parsing robust
+            raise ValueError(f"Frontmatter must be a YAML dict, got {type(metadata).__name__}")
+        
+        # Validate using Pydantic Frontmatter model (validates title field exists)
+        Frontmatter(**metadata)
+        
+    except Exception as exc:
         logger.warning("Failed to parse YAML frontmatter: %s", exc)
-        metadata = {"_frontmatter_error": str(exc)}
+        raise
 
     return metadata, rest
 
@@ -110,7 +112,7 @@ def load_pages(path: Union[str, Path] = "pages") -> Dict[str, Page]:
                 content = raw
                 html = raw
             else:
-                metadata, content = _parse_frontmatter(raw)
+                metadata, content = parse_frontmatter(raw)
                 html = _render_markdown(content)
 
             rel_path = fp.relative_to(pages_dir).with_suffix("")

@@ -3,10 +3,8 @@
 
 # Project specific
 __pycache__/
+.sass-cache/
 .venv/
 dist/
 
-.coverage
-pytest.xml
-pytest-coverage.txt
 rabbithole.iml

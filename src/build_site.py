@@ -59,14 +59,14 @@ def build_site(
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="refresh" content="0; url={settings.language_code}/index.html">
+  <meta http-equiv="refresh" content="0; url=/web/{settings.language_code}/index.html">
   <meta name="robots" content="noindex">
-  <link rel="canonical" href="{settings.language_code}/index.html">
+  <link rel="canonical" href="/web/{settings.language_code}/index.html">
   <title>Redirecting...</title>
-  <script>window.location.replace('{settings.language_code}/index.html');</script>
+  <script>window.location.replace('/web/{settings.language_code}/index.html');</script>
 </head>
 <body>
-  Redirecting to <a href="{settings.language_code}/index.html">{settings.language_code}/index.html</a>.
+  Redirecting to <a href="/web/{settings.language_code}/index.html">{settings.language_code}/index.html</a>.
 </body>
 </html>
 """

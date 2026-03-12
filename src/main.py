@@ -6,8 +6,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import click
 import logging
-import http.server
-import socketserver
 import time
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
@@ -107,6 +105,10 @@ def build(pages_dir: str, dist_dir: str, styles_dir: str):
 @click.option("--host", "-h", default="127.0.0.1", help="Host to bind to")
 def serve(pages_dir: str, dist_dir: str, styles_dir: str, port: int, host: str):
     """Serve the site and watch for changes, rebuilding when necessary."""
+    import uvicorn
+    from fastapi import FastAPI
+    from fastapi.responses import FileResponse, Response
+
     settings = Settings()
     Settings.model_validate(settings)
 
@@ -115,35 +117,42 @@ def serve(pages_dir: str, dist_dir: str, styles_dir: str, port: int, host: str):
     build_site(pages_dir, dist_dir, styles_dir, settings)
     logger.info("Initial build complete!")
 
-    # Set up HTTP server in the dist directory
+    # Set up FastAPI app
     dist_path = Path(dist_dir).resolve()
+    app = FastAPI(title="Rabbit Dev Server")
 
-    class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, directory=str(dist_path), **kwargs)
+    @app.get("/web/{path:path}")
+    async def serve_web(path: str):
+        """Serve files from the dist directory with .html extension fallback."""
+        if not path:
+            path = "index"
+        
+        file_path = dist_path / path
+        
+        # If the path exists as-is, serve it
+        if file_path.is_file():
+            return FileResponse(file_path)
+        
+        # Try adding .html extension
+        html_path = dist_path / f"{path}.html"
+        if html_path.is_file():
+            return FileResponse(html_path)
+        
+        # Check for index.html in directory
+        if file_path.is_dir():
+            index_path = file_path / "index.html"
+            if index_path.is_file():
+                return FileResponse(index_path)
+        
+        return Response(content="Not Found", status_code=404)
 
-        def translate_path(self, path):
-            """Translate URL path to filesystem path, handling /web prefix and .html extension."""
-            # Remove /web prefix if present
-            if path.startswith("/web/"):
-                path = path[4:]  # Remove '/web'
-            elif path == "/web":
-                path = "/"
-
-            # Call parent's translate_path with modified path
-            translated = super().translate_path(path)
-            
-            # If the path doesn't exist and doesn't have an extension, try adding .html
-            if not Path(translated).exists() and not Path(translated).suffix:
-                html_path = translated + ".html"
-                if Path(html_path).exists():
-                    return html_path
-            
-            return translated
-
-        def log_message(self, format, *args):
-            # Custom logging format
-            logger.info(f"{self.address_string()} - {format % args}")
+    @app.get("/web")
+    async def serve_web_root():
+        """Serve the root index.html."""
+        index_path = dist_path / "index.html"
+        if index_path.is_file():
+            return FileResponse(index_path)
+        return Response(content="Not Found", status_code=404)
 
     # Set up file watcher after initial build to avoid triggering on dist creation
     event_handler = RebuildHandler(pages_dir, dist_dir, styles_dir)
@@ -154,13 +163,9 @@ def serve(pages_dir: str, dist_dir: str, styles_dir: str, port: int, host: str):
     logger.info(f"Watching {Path(pages_dir).resolve()} and {Path(styles_dir).resolve()} for changes...")
 
     try:
-        class ReusableTCPServer(socketserver.TCPServer):
-            allow_reuse_address = True
-
-        with ReusableTCPServer((host, port), CustomHTTPRequestHandler) as httpd:
-            logger.info(f"Serving at http://{host}:{port}/web")
-            logger.info("Press Ctrl+C to stop")
-            httpd.serve_forever()
+        logger.info(f"Serving at http://{host}:{port}/web")
+        logger.info("Press Ctrl+C to stop")
+        uvicorn.run(app, host=host, port=port, log_level="info")
     except KeyboardInterrupt:
         logger.info("\nShutting down...")
     finally:

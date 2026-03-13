@@ -8,6 +8,7 @@ from src.schema import Frontmatter
 
 logger = logging.getLogger(__name__)
 
+
 def parse_frontmatter(text: str) -> Tuple[dict, str]:
     if not text.startswith("---"):
         return {}, text
@@ -34,7 +35,9 @@ def parse_frontmatter(text: str) -> Tuple[dict, str]:
     try:
         metadata = yaml.safe_load(front) or {}
         if not isinstance(metadata, dict):
-            raise ValueError(f"Frontmatter must be a YAML dict, got {type(metadata).__name__}")
+            raise ValueError(
+                f"Frontmatter must be a YAML dict, got {type(metadata).__name__}"
+            )
 
         # Validate using Pydantic Frontmatter model (validates title field exists)
         Frontmatter(**metadata)

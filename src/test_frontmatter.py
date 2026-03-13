@@ -2,6 +2,7 @@ import pytest
 
 from frontmatter import parse_frontmatter
 
+
 class TestParseFrontmatter:
     def test_parse_frontmatter(self):
         """Test parsing valid frontmatter with YAML content."""
@@ -25,21 +26,22 @@ This is the body of the document.
         assert content.strip().startswith("# Content starts here")
         assert "This is the body of the document." in content
 
-    @pytest.mark.parametrize("text,expected_metadata,expected_content_start", [
-        # No frontmatter at all
-        (
-                "# Just a heading\n\nSome content",
-                {},
-                "# Just a heading"
-        ),
-        # Missing closing delimiter
-        (
+    @pytest.mark.parametrize(
+        "text,expected_metadata,expected_content_start",
+        [
+            # No frontmatter at all
+            ("# Just a heading\n\nSome content", {}, "# Just a heading"),
+            # Missing closing delimiter
+            (
                 "---\ntitle: Test\n# No closing delimiter\nContent here",
                 {},
-                "---\ntitle: Test"
-        ),
-    ])
-    def test_parse_frontmatter_valid_inputs(self, text, expected_metadata, expected_content_start):
+                "---\ntitle: Test",
+            ),
+        ],
+    )
+    def test_parse_frontmatter_valid_inputs(
+        self, text, expected_metadata, expected_content_start
+    ):
         """Test various edge cases with valid inputs."""
         metadata, content = parse_frontmatter(text)
 

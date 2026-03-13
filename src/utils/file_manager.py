@@ -20,4 +20,3 @@ def create_dist_folder(path: Union[str, Path] = "dist") -> Path:
     p = create_folder("dist")
 
     return p
-

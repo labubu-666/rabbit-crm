@@ -45,6 +45,10 @@ jobs:
           npm install sass -g
           echo "$(npm config get prefix)/bin" >> $GITHUB_PATH
 
+      - name: Lint
+        run: |
+          uv run ruff format . --check
+
       - name: Test
         run: |
           uv run pytest

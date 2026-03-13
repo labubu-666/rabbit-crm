@@ -22,7 +22,8 @@ def load_pages(path: Union[str, Path] = "pages") -> Dict[str, Page]:
     pages_dir = Path(path)
     if not pages_dir.exists() or not pages_dir.is_dir():
         logger.info(
-            "Pages directory %s does not exist; returning empty dict", pages_dir.resolve()
+            "Pages directory %s does not exist; returning empty dict",
+            pages_dir.resolve(),
         )
         return {}
 
@@ -85,33 +86,37 @@ def compile_and_copy_styles(
     styles_dir: Union[str, Path] = "styles", dist_dir: Union[str, Path] = "dist"
 ) -> str:
     """Compile SCSS to CSS using subprocess and copy to dist with cache-busting hash.
-    
+
     Args:
         styles_dir: Directory containing SCSS files
         dist_dir: Directory to write output CSS files
-        
+
     Returns:
         The relative path to the CSS file (e.g., 'styles/index.f522ae8f.css'), or None if styles don't exist
     """
     styles_dir_p = Path(styles_dir)
     dist_p = Path(dist_dir)
-    
+
     if not styles_dir_p.exists():
-        logger.warning(f"Styles directory {styles_dir_p.resolve()} does not exist, skipping styles compilation")
+        logger.warning(
+            f"Styles directory {styles_dir_p.resolve()} does not exist, skipping styles compilation"
+        )
         return None
-    
+
     # Create styles subdirectory in dist
     dist_styles_p = dist_p / "styles"
     dist_styles_p.mkdir(parents=True, exist_ok=True)
-    
+
     # Compile SCSS to CSS using subprocess
     scss_input = styles_dir_p / "index.scss"
     css_output = styles_dir_p / "index.css"
-    
+
     if not scss_input.exists():
-        logger.warning(f"SCSS file {scss_input.resolve()} does not exist, skipping styles compilation")
+        logger.warning(
+            f"SCSS file {scss_input.resolve()} does not exist, skipping styles compilation"
+        )
         return None
-    
+
     try:
         # Run sass command using subprocess
         logger.info(f"Compiling SCSS: {scss_input.resolve()} -> {css_output.resolve()}")
@@ -119,7 +124,7 @@ def compile_and_copy_styles(
             ["sass", str(scss_input), str(css_output)],
             capture_output=True,
             text=True,
-            check=True
+            check=True,
         )
         if result.stdout:
             logger.debug(f"sass stdout: {result.stdout}")
@@ -128,43 +133,47 @@ def compile_and_copy_styles(
         logger.error(f"SCSS compilation failed: {exc.stderr}")
         raise
     except FileNotFoundError:
-        logger.error("sass command not found. Please install sass (e.g., 'npm install -g sass')")
+        logger.error(
+            "sass command not found. Please install sass (e.g., 'npm install -g sass')"
+        )
         raise
-    
+
     # Generate hash for cache busting
     try:
-        styles_hash = dirhash(str(styles_dir_p), 'md5', excluded_files=['.gitignore'])
+        styles_hash = dirhash(str(styles_dir_p), "md5", excluded_files=[".gitignore"])
         # Use first 8 characters of hash for brevity
         hash_suffix = styles_hash[:8]
         logger.info(f"Generated styles hash: {hash_suffix}")
     except Exception as exc:
         logger.warning(f"Failed to generate hash for styles: {exc}, using timestamp")
         import time
+
         hash_suffix = str(int(time.time()))
-    
+
     # Copy CSS to dist with hash suffix
     css_filename = f"index.{hash_suffix}.css"
     css_dest = dist_styles_p / css_filename
-    
+
     # Verify source file exists before copying
     if not css_output.exists():
-        logger.error(f"CSS file {css_output.resolve()} does not exist after compilation!")
+        logger.error(
+            f"CSS file {css_output.resolve()} does not exist after compilation!"
+        )
         raise FileNotFoundError(f"CSS file {css_output.resolve()} not found")
-    
+
     try:
         shutil.copyfile(str(css_output), str(css_dest))
         logger.info(f"Copied styles: {css_output.resolve()} -> {css_dest.resolve()}")
-        
+
         # Verify the file was actually copied
         if not css_dest.exists():
             logger.error(f"CSS file was not copied to {css_dest.resolve()}!")
             raise RuntimeError(f"Failed to copy CSS to {css_dest.resolve()}")
-        
+
         logger.info(f"Verified CSS file exists at: {css_dest.resolve()}")
     except Exception as exc:
         logger.error(f"Failed to copy CSS file: {exc}")
         raise
-    
+
     # Return relative path to CSS file for use in templates
     return f"styles/{css_filename}"
-

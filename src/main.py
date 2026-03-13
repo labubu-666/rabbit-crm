@@ -52,7 +52,9 @@ class RebuildHandler(FileSystemEventHandler):
         if current_time - self.last_rebuild < self.debounce_seconds:
             return
 
-        logger.info(f"Detected change in {Path(event.src_path).resolve()}, rebuilding...")
+        logger.info(
+            f"Detected change in {Path(event.src_path).resolve()}, rebuilding..."
+        )
         try:
             settings = Settings()
             Settings.model_validate(settings)
@@ -77,7 +79,11 @@ def cli():
     "--dist-dir", "dist_dir", "-d", default="dist", help="Path to output dist directory"
 )
 @click.option(
-    "--styles-dir", "styles_dir", "-s", default="styles", help="Path to styles directory"
+    "--styles-dir",
+    "styles_dir",
+    "-s",
+    default="styles",
+    help="Path to styles directory",
 )
 def build(pages_dir: str, dist_dir: str, styles_dir: str):
     """Build the site into the dist directory."""
@@ -85,8 +91,10 @@ def build(pages_dir: str, dist_dir: str, styles_dir: str):
     settings = Settings()
     Settings.model_validate(settings)
     logger.info("Loaded settings '%s'.", settings.model_dump())
-    
-    logger.info(f"Building site from {Path(pages_dir).resolve()} to {Path(dist_dir).resolve()}...")
+
+    logger.info(
+        f"Building site from {Path(pages_dir).resolve()} to {Path(dist_dir).resolve()}..."
+    )
     build_site(pages_dir, dist_dir, styles_dir, settings)
     logger.info("Build complete!")
 
@@ -99,7 +107,11 @@ def build(pages_dir: str, dist_dir: str, styles_dir: str):
     "--dist-dir", "dist_dir", "-d", default="dist", help="Path to output dist directory"
 )
 @click.option(
-    "--styles-dir", "styles_dir", "-s", default="styles", help="Path to styles directory"
+    "--styles-dir",
+    "styles_dir",
+    "-s",
+    default="styles",
+    help="Path to styles directory",
 )
 @click.option("--port", "-P", default=8000, help="Port to serve on")
 @click.option("--host", "-h", default="127.0.0.1", help="Host to bind to")
@@ -113,7 +125,9 @@ def serve(pages_dir: str, dist_dir: str, styles_dir: str, port: int, host: str):
     Settings.model_validate(settings)
 
     # Initial build with clean flag to remove old files
-    logger.info(f"Building site from {Path(pages_dir).resolve()} to {Path(dist_dir).resolve()}...")
+    logger.info(
+        f"Building site from {Path(pages_dir).resolve()} to {Path(dist_dir).resolve()}..."
+    )
     build_site(pages_dir, dist_dir, styles_dir, settings)
     logger.info("Initial build complete!")
 
@@ -126,24 +140,24 @@ def serve(pages_dir: str, dist_dir: str, styles_dir: str, port: int, host: str):
         """Serve files from the dist directory with .html extension fallback."""
         if not path:
             path = "index"
-        
+
         file_path = dist_path / path
-        
+
         # If the path exists as-is, serve it
         if file_path.is_file():
             return FileResponse(file_path)
-        
+
         # Try adding .html extension
         html_path = dist_path / f"{path}.html"
         if html_path.is_file():
             return FileResponse(html_path)
-        
+
         # Check for index.html in directory
         if file_path.is_dir():
             index_path = file_path / "index.html"
             if index_path.is_file():
                 return FileResponse(index_path)
-        
+
         return Response(content="Not Found", status_code=404)
 
     @app.get("/web")
@@ -160,7 +174,9 @@ def serve(pages_dir: str, dist_dir: str, styles_dir: str, port: int, host: str):
     observer.schedule(event_handler, pages_dir, recursive=True)
     observer.schedule(event_handler, styles_dir, recursive=True)
     observer.start()
-    logger.info(f"Watching {Path(pages_dir).resolve()} and {Path(styles_dir).resolve()} for changes...")
+    logger.info(
+        f"Watching {Path(pages_dir).resolve()} and {Path(styles_dir).resolve()} for changes..."
+    )
 
     try:
         logger.info(f"Serving at http://{host}:{port}/web")

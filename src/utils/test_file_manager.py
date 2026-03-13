@@ -3,6 +3,7 @@ import pytest
 
 from src.utils.file_manager import create_folder
 
+
 class TestCreateFolder:
     def test_create_folder_creates_directory(self, tmp_path):
         d = tmp_path / "dist"
@@ -23,4 +24,3 @@ class TestCreateFolder:
 
         with pytest.raises(RuntimeError):
             create_folder(f)
-

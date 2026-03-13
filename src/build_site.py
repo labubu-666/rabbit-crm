@@ -11,11 +11,12 @@ from src.utils.file_manager import create_folder
 
 logger = logging.getLogger(__name__)
 
+
 def build_site(
-        pages_dir: Union[str, Path],
-        dist_dir: Union[str, Path],
-        styles_dir: Union[str, Path],
-        settings: Settings
+    pages_dir: Union[str, Path],
+    dist_dir: Union[str, Path],
+    styles_dir: Union[str, Path],
+    settings: Settings,
 ) -> Path:
     """Load pages from `pages_dir`, render them to HTML files and write into `dist_dir`.
 
@@ -49,7 +50,7 @@ def build_site(
     template_dir = Path.cwd() / "templates"
     env = Environment(
         loader=FileSystemLoader(str(template_dir)),
-        autoescape=select_autoescape(['html', 'xml'])
+        autoescape=select_autoescape(["html", "xml"]),
     )
     template = env.get_template("template.html")
 
@@ -86,7 +87,9 @@ def build_site(
             if src_suffix in (".html", ".htm"):
                 # copy HTML file verbatim
                 shutil.copyfile(page.source_path, str(target))
-                logger.info(f"  {Path(page.source_path).resolve()} -> {target.resolve()}")
+                logger.info(
+                    f"  {Path(page.source_path).resolve()} -> {target.resolve()}"
+                )
             else:
                 title = (
                     page.metadata.get("title")
@@ -108,15 +111,18 @@ def build_site(
 
                 # Render using Jinja2 template
                 rendered_html = template.render(
-                    title=title,
-                    content=page.html,
-                    css_path=css_rel_path
+                    title=title, content=page.html, css_path=css_rel_path
                 )
                 target.write_text(rendered_html, encoding="utf-8")
-                logger.info(f"  {Path(page.source_path).resolve()} -> {target.resolve()}")
+                logger.info(
+                    f"  {Path(page.source_path).resolve()} -> {target.resolve()}"
+                )
         except Exception as exc:
             logger.warning(
-                "Failed to write page %s -> %s: %s", Path(page.source_path).resolve(), target.resolve(), exc
+                "Failed to write page %s -> %s: %s",
+                Path(page.source_path).resolve(),
+                target.resolve(),
+                exc,
             )
 
     return dist_p

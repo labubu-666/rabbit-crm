@@ -18,7 +18,6 @@ class TestLoadPages:
         # html should contain the heading text in some form
         assert "Hello" in page.html
 
-
     def test_load_page_with_frontmatter(self, tmp_path):
         pages = tmp_path / "pages"
         pages.mkdir(parents=True)
@@ -42,11 +41,9 @@ class TestLoadPages:
         assert "Body text" in page.content
         assert "Title" in page.html
 
-
     def test_missing_pages_dir_returns_empty(self, tmp_path):
         no_dir = tmp_path / "no-pages"
         assert not no_dir.exists()
 
         result = load_pages(no_dir)
         assert result == {}
-

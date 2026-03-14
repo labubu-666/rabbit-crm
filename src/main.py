@@ -7,6 +7,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import click
 import logging
 import time
+
+import uvicorn
+from fastapi import FastAPI
+from fastapi.responses import FileResponse, Response
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
@@ -130,6 +134,7 @@ def build(working_dir: str, pages_dir: str, dist_dir: str, styles_dir: str):
 )
 @click.option("--port", "-P", default=8000, help="Port to serve on")
 @click.option("--host", "-h", default="127.0.0.1", help="Host to bind to")
+@click.option("--dev", is_flag=True, help="Enable development mode with live reload")
 def serve(
     working_dir: str,
     pages_dir: str,
@@ -137,24 +142,31 @@ def serve(
     styles_dir: str,
     port: int,
     host: str,
+    dev: bool,
 ):
-    """Serve the site and watch for changes, rebuilding when necessary."""
-    import uvicorn
-    from fastapi import FastAPI
-    from fastapi.responses import FileResponse, Response
+    """Serve the site from the dist directory. Use --dev for live reload."""
+    dist_path = Path(dist_dir).resolve()
 
-    settings = Settings()
-    Settings.model_validate(settings)
+    # In dev mode, build the site and set up file watching
+    if dev:
+        settings = Settings()
+        Settings.model_validate(settings)
 
-    # Initial build with clean flag to remove old files
-    logger.info(
-        f"Building site from {Path(pages_dir).resolve()} to {Path(dist_dir).resolve()}..."
-    )
-    build_site(working_dir, pages_dir, dist_dir, styles_dir, settings)
-    logger.info("Initial build complete!")
+        # Initial build
+        logger.info(f"Building site from {Path(pages_dir).resolve()} to {dist_path}...")
+        build_site(working_dir, pages_dir, dist_dir, styles_dir, settings)
+        logger.info("Initial build complete!")
+    else:
+        # In production mode, just check that dist directory exists
+        if not dist_path.exists():
+            logger.error(
+                f"Dist directory '{dist_path}' does not exist. "
+                f"Run 'rabbit build' first or use 'rabbit serve --dev' to build and watch."
+            )
+            sys.exit(1)
+        logger.info(f"Serving pre-built site from {dist_path}")
 
     # Set up FastAPI app
-    dist_path = Path(dist_dir).resolve()
     app = FastAPI(title="Rabbit Dev Server")
 
     @app.get("/web/{path:path}")
@@ -190,25 +202,30 @@ def serve(
             return FileResponse(index_path)
         return Response(content="Not Found", status_code=404)
 
-    # Set up file watcher after initial build to avoid triggering on dist creation
-    event_handler = RebuildHandler(working_dir, pages_dir, dist_dir, styles_dir)
-    observer = Observer()
-    observer.schedule(event_handler, pages_dir, recursive=True)
-    observer.schedule(event_handler, styles_dir, recursive=True)
-    observer.start()
-    logger.info(
-        f"Watching {Path(pages_dir).resolve()} and {Path(styles_dir).resolve()} for changes..."
-    )
+    # Set up file watcher only in dev mode
+    observer = None
+    if dev:
+        event_handler = RebuildHandler(working_dir, pages_dir, dist_dir, styles_dir)
+        observer = Observer()
+        observer.schedule(event_handler, pages_dir, recursive=True)
+        observer.schedule(event_handler, styles_dir, recursive=True)
+        observer.start()
+        logger.info(
+            f"Watching {Path(pages_dir).resolve()} and {Path(styles_dir).resolve()} for changes..."
+        )
 
     try:
         logger.info(f"Serving at http://{host}:{port}/web")
+        if dev:
+            logger.info("Development mode: Live reload enabled")
         logger.info("Press Ctrl+C to stop")
         uvicorn.run(app, host=host, port=port, log_level="info")
     except KeyboardInterrupt:
         logger.info("\nShutting down...")
     finally:
-        observer.stop()
-        observer.join()
+        if observer:
+            observer.stop()
+            observer.join()
         logger.info("Server stopped")
 
 

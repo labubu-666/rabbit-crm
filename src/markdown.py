@@ -43,6 +43,16 @@ def _repl_inline_code(m):
     return f"<code>{m.group(1)}</code>"
 
 
+def _repl_block_code(m):
+    language = m.group(1) if m.group(1) else ""
+    code = m.group(2)
+    # Escape HTML in code content
+    code = html_module.escape(code)
+    if language:
+        return f'<pre><code class="language-{html_module.escape(language)}">{code}</code></pre>'
+    return f"<pre><code>{code}</code></pre>"
+
+
 # Lazy load plugins - cache them after first load
 _plugin_cache = {}
 
@@ -75,6 +85,13 @@ def repl_inline_code(m):
     return impl(m)
 
 
+def repl_block_code(m):
+    impl = _get_plugin_impl(
+        "plugins.markdown.render", "repl_block_code", _repl_block_code
+    )
+    return impl(m)
+
+
 def _render_markdown(text: str, working_dir: str = None) -> str:
     """Render markdown text to HTML.
 
@@ -88,6 +105,20 @@ def _render_markdown(text: str, working_dir: str = None) -> str:
     cwd = working_dir or os.getcwd()
     if cwd not in sys.path:
         sys.path.insert(0, cwd)
+
+    # block code (must be processed before escaping)
+    # ```language
+    # code
+    # ```
+    block_code_pattern = r"```(\w+)?\n(.*?)```"
+    block_codes = []
+
+    def save_block_code(m):
+        placeholder = f"__BLOCK_CODE_{len(block_codes)}__"
+        block_codes.append(m)
+        return placeholder
+
+    text = re.sub(block_code_pattern, save_block_code, text, flags=re.DOTALL)
 
     text = html_module.escape(text)
 
@@ -106,6 +137,11 @@ def _render_markdown(text: str, working_dir: str = None) -> str:
     # inline code
     # `inline_code`
     text = re.sub(r"`([^`]+)`", repl_inline_code, text)
+
+    # restore block codes
+    for i, match in enumerate(block_codes):
+        placeholder = f"__BLOCK_CODE_{i}__"
+        text = text.replace(placeholder, repl_block_code(match))
 
     # paragraphs: split on two or more newlines
     parts = re.split(r"\n\s*\n", text.strip())

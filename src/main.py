@@ -2,6 +2,8 @@ import sys
 
 from pathlib import Path
 
+from starlette.responses import RedirectResponse
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import click
@@ -196,11 +198,16 @@ def serve(
 
     @app.get("/web")
     async def serve_web_root():
-        """Serve the root index.html."""
+        """Serve web/index."""
         index_path = dist_path / "index.html"
         if index_path.is_file():
             return FileResponse(index_path)
         return Response(content="Not Found", status_code=404)
+
+    @app.get("/")
+    async def serve_index_root():
+        """Serve index, redirects to /web."""
+        return RedirectResponse("/web")
 
     # Set up file watcher only in dev mode
     observer = None

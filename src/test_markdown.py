@@ -20,7 +20,8 @@ def test_render_inline_code():
 
 
 def test_render_block_code_without_language():
-    rendered_html = _render_markdown("""```
+    rendered_html = _render_markdown("""
+```
 def hello():
     print("world")
 ```""")
@@ -32,7 +33,8 @@ def hello():
 
 
 def test_render_block_code_with_language():
-    rendered_html = _render_markdown("""```python
+    rendered_html = _render_markdown("""
+```python
 def hello():
     print("world")
 ```""")
@@ -45,7 +47,8 @@ def hello():
 
 def test_render_block_code_extracts_language():
     """Test that language is correctly extracted from code block"""
-    rendered_html = _render_markdown("""```javascript
+    rendered_html = _render_markdown("""
+```javascript
 console.log("hello");
 ```""")
 
@@ -55,7 +58,8 @@ console.log("hello");
 
 def test_render_block_code_with_backticks():
     """Test that backticks are properly handled in block code"""
-    rendered_html = _render_markdown("""```python
+    rendered_html = _render_markdown("""
+```python
 x = 5
 ```""")
 
@@ -67,7 +71,8 @@ x = 5
 
 def test_render_block_code_escapes_html():
     """Test that HTML in code blocks is properly escaped"""
-    rendered_html = _render_markdown("""```html
+    rendered_html = _render_markdown("""
+```html
 <div>Hello</div>
 ```""")
 
@@ -78,7 +83,8 @@ def test_render_block_code_escapes_html():
 
 def test_render_block_code_multiple_blocks():
     """Test multiple code blocks in the same document"""
-    rendered_html = _render_markdown("""```python
+    rendered_html = _render_markdown("""
+```python
 print("first")
 ```
 

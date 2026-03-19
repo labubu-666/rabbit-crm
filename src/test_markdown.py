@@ -24,7 +24,8 @@ def test_render_block_code_without_language():
 ```
 def hello():
     print("world")
-```""")
+```
+""")
 
     assert (
         rendered_html
@@ -37,7 +38,8 @@ def test_render_block_code_with_language():
 ```python
 def hello():
     print("world")
-```""")
+```
+""")
 
     assert (
         rendered_html
@@ -50,7 +52,8 @@ def test_render_block_code_extracts_language():
     rendered_html = _render_markdown("""
 ```javascript
 console.log("hello");
-```""")
+```
+""")
 
     assert 'class="language-javascript"' in rendered_html
     assert "console.log(&quot;hello&quot;);" in rendered_html

@@ -200,6 +200,7 @@ def serve(
     async def serve_web_root():
         """Serve web/index."""
         index_path = dist_path / "index.html"
+        print(index_path)
         if index_path.is_file():
             return FileResponse(index_path)
         return Response(content="Not Found", status_code=404)

@@ -37,6 +37,12 @@ def build_site(
 
     pages_dir_p = Path(pages_dir)
 
+    # Clean dist directory before building to avoid stale artifacts
+    dist_p = Path(dist_dir)
+    if dist_p.exists():
+        logger.info(f"Cleaning dist directory: {dist_p.resolve()}")
+        shutil.rmtree(dist_p)
+
     dist_p = create_folder(dist_dir)
 
     # Compile and copy styles with cache-busting
@@ -60,28 +66,16 @@ def build_site(
     article_template = env.get_template("article.html")
     index_template = env.get_template("index.html")
 
-    # Create root index.html redirect (without needing a source file)
+    # Create root index.html using the index template
     root_index = dist_p / "index.html"
-    redirect_html = f"""<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta http-equiv="refresh" content="0; url=/web/{settings.language_code}/index.html">
-  <meta name="robots" content="noindex">
-  <link rel="canonical" href="/web/{settings.language_code}/index.html">
-  <title>Redirecting...</title>
-  <script>window.location.replace('/web/{settings.language_code}/index.html');</script>
-</head>
-<body>
-  Redirecting to <a href="/web/{settings.language_code}/index.html">{settings.language_code}/index.html</a>.
-</body>
-</html>
-"""
     try:
-        root_index.write_text(redirect_html, encoding="utf-8")
-        logger.info(f"  Created root redirect: {root_index.resolve()}")
+        rendered_html = index_template.render(
+            title="Home", css_path=css_path if css_path else None
+        )
+        root_index.write_text(rendered_html, encoding="utf-8")
+        logger.info(f"  Created root index: {root_index.resolve()}")
     except Exception as exc:
-        logger.warning("Failed to write root index redirect: %s", exc)
+        logger.warning("Failed to write root index: %s", exc)
 
     for key, page in pages.items():
         # target path is dist/<key>.html

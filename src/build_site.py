@@ -56,7 +56,9 @@ def build_site(
         loader=FileSystemLoader(str(template_dir)),
         autoescape=select_autoescape(["html", "xml"]),
     )
-    template = env.get_template("template.html")
+
+    article_template = env.get_template("article.html")
+    index_template = env.get_template("index.html")
 
     # Create root index.html redirect (without needing a source file)
     root_index = dist_p / "index.html"
@@ -87,40 +89,49 @@ def build_site(
         target.parent.mkdir(parents=True, exist_ok=True)
 
         src_suffix = Path(page.source_path).suffix.lower()
+
+        # Determine if this is an index page
+        is_index_page = key.endswith("/index") or key == "index"
+
         try:
-            if src_suffix in (".html", ".htm"):
-                # copy HTML file verbatim
+            # Get title from metadata or use fallback
+            title = (
+                page.metadata.get("title") if isinstance(page.metadata, dict) else None
+            )
+            if not title:
+                # fallback title
+                title = key.split("/")[-1]
+
+            # Calculate relative path to CSS from this page
+            # For pages in subdirectories, we need to go up levels
+            # Only calculate css_rel_path if css_path exists
+            if css_path:
+                depth = len(Path(key).parts) - 1
+                css_rel_path = "../" * depth + css_path if depth > 0 else css_path
+            else:
+                css_rel_path = None
+
+            # Choose template based on whether it's an index page
+            if is_index_page:
+                # Use index template for index pages (no content)
+                rendered_html = index_template.render(
+                    title=title, css_path=css_rel_path
+                )
+            elif src_suffix in (".html", ".htm"):
+                # For non-index HTML files, copy verbatim
                 shutil.copyfile(page.source_path, str(target))
                 logger.info(
                     f"  {Path(page.source_path).resolve()} -> {target.resolve()}"
                 )
+                continue
             else:
-                title = (
-                    page.metadata.get("title")
-                    if isinstance(page.metadata, dict)
-                    else None
-                )
-                if not title:
-                    # fallback title
-                    title = key.split("/")[-1]
-
-                # Calculate relative path to CSS from this page
-                # For pages in subdirectories, we need to go up levels
-                # Only calculate css_rel_path if css_path exists
-                if css_path:
-                    depth = len(Path(key).parts) - 1
-                    css_rel_path = "../" * depth + css_path if depth > 0 else css_path
-                else:
-                    css_rel_path = None
-
-                # Render using Jinja2 template
-                rendered_html = template.render(
+                # Use post template for markdown pages
+                rendered_html = article_template.render(
                     title=title, content=page.html, css_path=css_rel_path
                 )
-                target.write_text(rendered_html, encoding="utf-8")
-                logger.info(
-                    f"  {Path(page.source_path).resolve()} -> {target.resolve()}"
-                )
+
+            target.write_text(rendered_html, encoding="utf-8")
+            logger.info(f"  {Path(page.source_path).resolve()} -> {target.resolve()}")
         except Exception as exc:
             logger.warning(
                 "Failed to write page %s -> %s: %s",

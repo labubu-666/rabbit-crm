@@ -69,9 +69,8 @@ def build_site(
     # Create root index.html using the index template
     root_index = dist_p / "index.html"
     try:
-        rendered_html = index_template.render(
-            title="Home", css_path=css_path if css_path else None
-        )
+        # css_path already contains absolute path from compile_and_copy_styles
+        rendered_html = index_template.render(title="Home", css_path=css_path)
         root_index.write_text(rendered_html, encoding="utf-8")
         logger.info(f"  Created root index: {root_index.resolve()}")
     except Exception as exc:
@@ -96,21 +95,10 @@ def build_site(
                 # fallback title
                 title = key.split("/")[-1]
 
-            # Calculate relative path to CSS from this page
-            # For pages in subdirectories, we need to go up levels
-            # Only calculate css_rel_path if css_path exists
-            if css_path:
-                depth = len(Path(key).parts) - 1
-                css_rel_path = "../" * depth + css_path if depth > 0 else css_path
-            else:
-                css_rel_path = None
-
             # Choose template based on whether it's an index page
             if is_index_page:
                 # Use index template for index pages (no content)
-                rendered_html = index_template.render(
-                    title=title, css_path=css_rel_path
-                )
+                rendered_html = index_template.render(title=title, css_path=css_path)
             elif src_suffix in (".html", ".htm"):
                 # For non-index HTML files, copy verbatim
                 shutil.copyfile(page.source_path, str(target))
@@ -121,7 +109,7 @@ def build_site(
             else:
                 # Use post template for markdown pages
                 rendered_html = article_template.render(
-                    title=title, content=page.html, css_path=css_rel_path
+                    title=title, content=page.html, css_path=css_path
                 )
 
             target.write_text(rendered_html, encoding="utf-8")

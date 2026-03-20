@@ -2,7 +2,7 @@
 
 # Quick start
 
-    uv add git+ssh://git@github.com/labubu-666/rabbit.git@main 
+    uv add git+ssh://git@github.com/labubu-666/rabbit.git@main
 
 # Dev
 
@@ -12,6 +12,10 @@
 
     uv run rabbit build
 
-# Serve 
+# Serve
 
+## By default , served from current directory
     uv run rabbit serve
+
+## Specify directory with
+    uv run --directory integration-tests/knowledge-bases/hello-world rabbit serve

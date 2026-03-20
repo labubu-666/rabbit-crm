@@ -1,1 +1,0 @@
-    uv run --directory integration-tests/wiki rabbit serve

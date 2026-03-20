@@ -40,5 +40,5 @@ addopts = ["-vvv"]
 
 [tool.uv.workspace]
 members = [
-    "integration-tests/wiki",
+    "integration-tests/knowledge-bases/hello-world",
 ]

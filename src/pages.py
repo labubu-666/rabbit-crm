@@ -13,9 +13,7 @@ from src.schema import Page
 logger = logging.getLogger(__name__)
 
 
-def load_pages(
-    path: Union[str, Path] = "pages", working_dir: Union[str, Path] = "."
-) -> Dict[str, Page]:
+def load_pages(path: Path = "pages", working_dir: Path = ".") -> Dict[str, Page]:
     """Recursively load markdown pages from `path`, parse frontmatter and render HTML.
 
     Args:
@@ -28,7 +26,7 @@ def load_pages(
     pages_dir = Path(path)
     if not pages_dir.exists() or not pages_dir.is_dir():
         logger.info(
-            "Pages directory %s does not exist; returning empty dict",
+            "Pages directory '%s' does not exist.",
             pages_dir.resolve(),
         )
         return {}
@@ -98,7 +96,7 @@ def compile_and_copy_styles(
         dist_dir: Directory to write output CSS files
 
     Returns:
-        The relative path to the CSS file (e.g., 'styles/index.f522ae8f.css'), or None if styles don't exist
+        The absolute path to the CSS file (e.g., '/assets/styles/index.f522ae8f.css'), or None if styles don't exist
     """
     styles_dir_p = Path(styles_dir)
     dist_p = Path(dist_dir)
@@ -109,8 +107,8 @@ def compile_and_copy_styles(
         )
         return None
 
-    # Create styles subdirectory in dist
-    dist_styles_p = dist_p / "styles"
+    # Create assets/styles subdirectory in dist
+    dist_styles_p = dist_p / "assets" / "styles"
     dist_styles_p.mkdir(parents=True, exist_ok=True)
 
     # Compile SCSS to CSS using subprocess
@@ -134,7 +132,7 @@ def compile_and_copy_styles(
         )
         if result.stdout:
             logger.debug(f"sass stdout: {result.stdout}")
-        logger.info(f"SCSS compilation successful")
+        logger.info("SCSS compilation successful")
     except subprocess.CalledProcessError as exc:
         logger.error(f"SCSS compilation failed: {exc.stderr}")
         raise
@@ -182,4 +180,4 @@ def compile_and_copy_styles(
         raise
 
     # Return relative path to CSS file for use in templates
-    return f"styles/{css_filename}"
+    return f"/assets/styles/{css_filename}"

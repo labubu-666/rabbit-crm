@@ -51,7 +51,15 @@ jobs:
 
       - name: Test
         run: |
-          uv run pytest
+          uv run pytest --cov-report html
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v7.0.0
+        if: always()
+        with:
+          name: coverage-report
+          path: htmlcov/
+          retention-days: 7
 
   smoke-test:
     runs-on: ubuntu-latest

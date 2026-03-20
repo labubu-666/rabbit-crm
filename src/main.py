@@ -149,18 +149,25 @@ def serve(
 ):
     """Serve the site from the dist directory. Use --dev for live reload."""
     dist_path = Path(dist_dir).resolve()
+    settings = Settings()
+    Settings.model_validate(settings)
+
+    # Store paths for startup event
+    app.state.working_dir = working_dir
+    app.state.pages_dir = pages_dir
+    app.state.dist_dir = dist_dir
+    app.state.styles_dir = styles_dir
+    app.state.settings = settings
+    app.state.dev_mode = dev
 
     # In dev mode, build the site and set up file watching
     if dev:
-        settings = Settings()
-        Settings.model_validate(settings)
-
         # Initial build
         logger.info(f"Building site from {Path(pages_dir).resolve()} to {dist_path}...")
         build_site(working_dir, pages_dir, dist_dir, styles_dir, settings)
         logger.info("Initial build complete!")
     else:
-        # In production mode, just check that dist directory exists
+        # In production mode, check that dist directory exists
         if not dist_path.exists():
             logger.error(
                 f"Dist directory '{dist_path}' does not exist. "

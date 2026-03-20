@@ -8,6 +8,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from pages import compile_and_copy_styles, load_pages
 from settings import Settings
 from src.utils.file_manager import create_folder
+from src.search import rebuild_search_index
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,11 @@ def build_site(
         return dist_p
 
     logger.info(f"Found {len(pages)} page(s) to build")
+
+    # Rebuild search index with loaded pages
+    logger.info("Building search index...")
+    rebuild_search_index(pages)
+    logger.info("Search index built successfully")
 
     # Use current working directory for templates when used as a CLI
     template_dir = Path.cwd() / "templates"

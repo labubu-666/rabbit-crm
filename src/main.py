@@ -2,16 +2,17 @@ import sys
 
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 from starlette.responses import RedirectResponse
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+from app import app
 
 import click
 import logging
 import time
 
 import uvicorn
-from fastapi import FastAPI
 from fastapi.responses import FileResponse, Response
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
@@ -167,9 +168,6 @@ def serve(
             )
             sys.exit(1)
         logger.info(f"Serving pre-built site from {dist_path}")
-
-    # Set up FastAPI app
-    app = FastAPI(title="Rabbit Dev Server")
 
     @app.get("/web/{path:path}")
     async def serve_web(path: str):

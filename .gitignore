@@ -6,6 +6,8 @@ __pycache__/
 .sass-cache/
 .venv/
 dist/
+htmlcov/
 
+.coverage
 .env
 rabbit.iml

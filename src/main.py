@@ -40,9 +40,25 @@ class RebuildHandler(FileSystemEventHandler):
         self.debounce_seconds = 1.0  # Debounce to avoid multiple rapid rebuilds
 
     def on_any_event(self, event):
-        """Trigger rebuild on any file system event."""
-        # Ignore directory events and changes in dist directory
+        """Trigger rebuild on file modification events only."""
+        # Ignore directory events
         if event.is_directory:
+            return
+
+        # Only respond to actual file modifications, not reads
+        # event_type will be 'modified', 'created', 'deleted', 'moved'
+        # We want to ignore 'opened', 'closed' events that don't modify files
+        from watchdog.events import (
+            FileModifiedEvent,
+            FileCreatedEvent,
+            FileDeletedEvent,
+            FileMovedEvent,
+        )
+
+        if not isinstance(
+            event,
+            (FileModifiedEvent, FileCreatedEvent, FileDeletedEvent, FileMovedEvent),
+        ):
             return
 
         # Ignore changes in the dist directory itself
@@ -56,6 +72,11 @@ class RebuildHandler(FileSystemEventHandler):
                 return
         except Exception:
             pass
+
+        # Ignore certain files that shouldn't trigger rebuilds
+        ignored_files = {".gitignore", ".dist", ".DS_Store"}
+        if event_path.name in ignored_files:
+            return
 
         # Debounce: only rebuild if enough time has passed since last rebuild
         current_time = time.time()
@@ -111,10 +132,22 @@ def build(working_dir: str, pages_dir: str, dist_dir: str, styles_dir: str):
     Settings.model_validate(settings)
     logger.info("Loaded settings '%s'.", settings.model_dump())
 
-    logger.info(
-        f"Building site from {Path(pages_dir).resolve()} to {Path(dist_dir).resolve()}..."
+    # Resolve working_dir first
+    working_dir_path = Path(working_dir).resolve()
+
+    # Resolve all paths relative to working_dir
+    pages_path = (working_dir_path / pages_dir).resolve()
+    dist_path = (working_dir_path / dist_dir).resolve()
+    styles_path = (working_dir_path / styles_dir).resolve()
+
+    logger.info(f"Building site from {pages_path} to {dist_path}...")
+    build_site(
+        str(working_dir_path),
+        str(pages_path),
+        str(dist_path),
+        str(styles_path),
+        settings,
     )
-    build_site(working_dir, pages_dir, dist_dir, styles_dir, settings)
     logger.info("Build complete!")
 
 
@@ -148,23 +181,36 @@ def serve(
     dev: bool,
 ):
     """Serve the site from the dist directory. Use --dev for live reload."""
-    dist_path = Path(dist_dir).resolve()
+    # Resolve working_dir first
+    working_dir_path = Path(working_dir).resolve()
+
+    # Resolve all paths relative to working_dir
+    pages_path = (working_dir_path / pages_dir).resolve()
+    dist_path = (working_dir_path / dist_dir).resolve()
+    styles_path = (working_dir_path / styles_dir).resolve()
+
     settings = Settings()
     Settings.model_validate(settings)
 
     # Store paths for startup event
-    app.state.working_dir = working_dir
-    app.state.pages_dir = pages_dir
-    app.state.dist_dir = dist_dir
-    app.state.styles_dir = styles_dir
+    app.state.working_dir = str(working_dir_path)
+    app.state.pages_dir = str(pages_path)
+    app.state.dist_dir = str(dist_path)
+    app.state.styles_dir = str(styles_path)
     app.state.settings = settings
     app.state.dev_mode = dev
 
     # In dev mode, build the site and set up file watching
     if dev:
         # Initial build
-        logger.info(f"Building site from {Path(pages_dir).resolve()} to {dist_path}...")
-        build_site(working_dir, pages_dir, dist_dir, styles_dir, settings)
+        logger.info(f"Building site from {pages_path} to {dist_path}...")
+        build_site(
+            str(working_dir_path),
+            str(pages_path),
+            str(dist_path),
+            str(styles_path),
+            settings,
+        )
         logger.info("Initial build complete!")
     else:
         # In production mode, check that dist directory exists
@@ -218,14 +264,14 @@ def serve(
     # Set up file watcher only in dev mode
     observer = None
     if dev:
-        event_handler = RebuildHandler(working_dir, pages_dir, dist_dir, styles_dir)
-        observer = Observer()
-        observer.schedule(event_handler, pages_dir, recursive=True)
-        observer.schedule(event_handler, styles_dir, recursive=True)
-        observer.start()
-        logger.info(
-            f"Watching {Path(pages_dir).resolve()} and {Path(styles_dir).resolve()} for changes..."
+        event_handler = RebuildHandler(
+            str(working_dir_path), str(pages_path), str(dist_path), str(styles_path)
         )
+        observer = Observer()
+        observer.schedule(event_handler, str(pages_path), recursive=True)
+        observer.schedule(event_handler, str(styles_path), recursive=True)
+        observer.start()
+        logger.info(f"Watching {pages_path} and {styles_path} for changes...")
 
     try:
         logger.info(f"Serving at http://{host}:{port}/web")

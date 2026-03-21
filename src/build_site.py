@@ -62,8 +62,8 @@ def build_site(
     rebuild_search_index(pages)
     logger.info("Search index built successfully")
 
-    # Use current working directory for templates when used as a CLI
-    template_dir = Path.cwd() / "templates"
+    # Use working directory for templates
+    template_dir = working_dir_p / "templates"
     env = Environment(
         loader=FileSystemLoader(str(template_dir)),
         autoescape=select_autoescape(["html", "xml"]),

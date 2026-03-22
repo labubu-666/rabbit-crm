@@ -14,4 +14,5 @@ Override working directory using `--working-dir`.
 - After making changes, run `uv run ruff format` to make sure files are correctly linted.
 # Testing
 - The project exclusively uses `pytest`.
+- Prefer `monkeypatch` to `unittest.mock.patch`.
 - Run using `uv run pytest -vvv`.

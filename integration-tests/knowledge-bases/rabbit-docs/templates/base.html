@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ title }}{% endblock %}</title>
+    <link rel="stylesheet" href="/web{{ css_path }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+<header>
+    {% include 'includes/header.html' %}
+</header>
+
+{% block content %}{% endblock %}
+
+<footer>
+    v0.0.0
+</footer>
+
+<script defer>
+    console.log("Hello 👋.");
+
+    let debounceTimer;
+    const searchInput = document.getElementById('search');
+    const suggestionsContainer = document.getElementById('suggestions');
+
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.trim();
+
+        // Clear previous timer
+        clearTimeout(debounceTimer);
+
+        // Hide suggestions if query is empty
+        if (!query) {
+            suggestionsContainer.classList.remove('show');
+            suggestionsContainer.innerHTML = '';
+            return;
+        }
+
+        // Debounce the search request
+        debounceTimer = setTimeout(() => {
+            fetchSuggestions(query);
+        }, 300);
+    });
+
+    async function fetchSuggestions(query) {
+        try {
+            const response = await fetch(`/api/v1/search?q=${encodeURIComponent(query)}`);
+            const data = await response.json();
+
+            if (data.results && data.results.length > 0) {
+                displaySuggestions(data.results);
+            } else {
+                suggestionsContainer.classList.remove('show');
+                suggestionsContainer.innerHTML = '';
+            }
+        } catch (error) {
+            console.error('Error fetching suggestions:', error);
+        }
+    }
+
+    function displaySuggestions(results) {
+        suggestionsContainer.innerHTML = '';
+
+        results.forEach(result => {
+            const item = document.createElement('div');
+            item.className = 'suggestion-item';
+
+            const title = document.createElement('div');
+            title.className = 'suggestion-title';
+            title.textContent = result.title;
+
+            const snippet = document.createElement('div');
+            snippet.className = 'suggestion-snippet';
+            snippet.textContent = result.snippet;
+
+            item.appendChild(title);
+            item.appendChild(snippet);
+
+            // Navigate on click
+            item.addEventListener('click', () => {
+                window.location.href = result.url;
+            });
+
+            suggestionsContainer.appendChild(item);
+        });
+
+        suggestionsContainer.classList.add('show');
+    }
+
+    // Hide suggestions when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('#autocomplete-container')) {
+            suggestionsContainer.classList.remove('show');
+        }
+    });
+
+    // Show suggestions again when focusing on input if there's content
+    searchInput.addEventListener('focus', () => {
+        if (searchInput.value.trim() && suggestionsContainer.children.length > 0) {
+            suggestionsContainer.classList.add('show');
+        }
+    });
+</script>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

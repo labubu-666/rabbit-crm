@@ -2,9 +2,9 @@ import sys
 
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+from logfmter import Logfmter
 
-from starlette.responses import RedirectResponse
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from app import app
 
@@ -13,16 +13,22 @@ import logging
 import time
 
 import uvicorn
-from fastapi.responses import FileResponse, Response
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 from settings import Settings
 from build_site import build_site
 
+formatter = Logfmter(keys=["level"], mapping={"level": "levelname"})
+
+handler = logging.StreamHandler()
+handler.setFormatter(formatter)
+
 logging.basicConfig(
+    handlers=[handler],
     level=logging.DEBUG,
 )
+
 logger = logging.getLogger(__name__)
 
 
@@ -221,45 +227,6 @@ def serve(
             )
             sys.exit(1)
         logger.info(f"Serving pre-built site from {dist_path}")
-
-    @app.get("/web/{path:path}")
-    async def serve_web(path: str):
-        """Serve files from the dist directory with .html extension fallback."""
-        if not path:
-            path = "index"
-
-        file_path = dist_path / path
-
-        # If the path exists as-is, serve it
-        if file_path.is_file():
-            return FileResponse(file_path)
-
-        # Try adding .html extension
-        html_path = dist_path / f"{path}.html"
-        if html_path.is_file():
-            return FileResponse(html_path)
-
-        # Check for index.html in directory
-        if file_path.is_dir():
-            index_path = file_path / "index.html"
-            if index_path.is_file():
-                return FileResponse(index_path)
-
-        return Response(content="Not Found", status_code=404)
-
-    @app.get("/web")
-    async def serve_web_root():
-        """Serve web/index."""
-        index_path = dist_path / "index.html"
-        print(index_path)
-        if index_path.is_file():
-            return FileResponse(index_path)
-        return Response(content="Not Found", status_code=404)
-
-    @app.get("/")
-    async def serve_index_root():
-        """Serve index, redirects to /web."""
-        return RedirectResponse("/web")
 
     # Set up file watcher only in dev mode
     observer = None

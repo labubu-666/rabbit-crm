@@ -14,9 +14,3 @@ def create_folder(path: Union[str, Path]) -> Path:
         raise RuntimeError(f"Path {p!s} exists but is not a directory")
 
     return p
-
-
-def create_dist_folder(path: Union[str, Path] = "dist") -> Path:
-    p = create_folder("dist")
-
-    return p

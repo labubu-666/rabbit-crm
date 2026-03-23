@@ -87,3 +87,45 @@ class TestApp:
         response = client_with_knowledge_base.get("/", follow_redirects=False)
         assert response.status_code == 307  # Redirect
         assert response.headers["location"] == "/web"
+
+    def test_articles_endpoint(self, client_with_knowledge_base):
+        """Test the articles endpoint returns a list of articles."""
+        response = client_with_knowledge_base.get("/api/v1/articles")
+        assert response.status_code == 200
+        data = response.json()
+        assert "results" in data
+        assert "offset" in data
+        assert "limit" in data
+        assert "count" in data
+        assert isinstance(data["results"], list)
+
+    def test_articles_endpoint_with_pagination(self, client_with_knowledge_base):
+        """Test articles endpoint with pagination parameters."""
+        response = client_with_knowledge_base.get("/api/v1/articles?limit=5&offset=0")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["limit"] == 5
+        assert data["offset"] == 0
+
+    def test_articles_endpoint_limit_validation(self, client_with_knowledge_base):
+        """Test that articles endpoint validates limit parameter."""
+        # Test limit too high
+        response = client_with_knowledge_base.get("/api/v1/articles?limit=200")
+        assert response.status_code == 422  # Validation error
+
+        # Test limit too low
+        response = client_with_knowledge_base.get("/api/v1/articles?limit=0")
+        assert response.status_code == 422  # Validation error
+
+    def test_articles_structure(self, client_with_knowledge_base):
+        """Test that articles have the correct structure."""
+        response = client_with_knowledge_base.get("/api/v1/articles")
+        assert response.status_code == 200
+        data = response.json()
+
+        if data["results"]:
+            article = data["results"][0]
+            assert "title" in article
+            assert "path" in article
+            assert isinstance(article["title"], str)
+            assert isinstance(article["path"], str)

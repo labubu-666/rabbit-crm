@@ -9,6 +9,7 @@ from pages import compile_and_copy_styles, load_pages
 from settings import Settings
 from src.utils.file_manager import create_folder
 from src.search import rebuild_search_index
+from src.schema import Article
 
 logger = logging.getLogger(__name__)
 
@@ -72,11 +73,35 @@ def build_site(
     article_template = env.get_template("article.html")
     index_template = env.get_template("index.html")
 
+    # Prepare articles list for index pages
+    articles = []
+    for key, page in pages.items():
+        # Skip index pages
+        if key.endswith("/index") or key == "index":
+            continue
+
+        # Get title from metadata or use fallback
+        title = page.metadata.get("title") if isinstance(page.metadata, dict) else None
+        if not title:
+            # Use the last part of the path as fallback
+            title = key.split("/")[-1].replace("-", " ").title()
+
+        article: Article = {
+            "title": title,
+            "path": key,
+        }
+        articles.append(article)
+
+    # Sort articles by title
+    articles.sort(key=lambda x: x["title"])
+
     # Create root index.html using the index template
     root_index = dist_p / "index.html"
     try:
         # css_path already contains absolute path from compile_and_copy_styles
-        rendered_html = index_template.render(title="Home", css_path=css_path)
+        rendered_html = index_template.render(
+            title="Home", css_path=css_path, articles=articles
+        )
         root_index.write_text(rendered_html, encoding="utf-8")
         logger.info(f"  Created root index: {root_index.resolve()}")
     except Exception as exc:
@@ -103,8 +128,10 @@ def build_site(
 
             # Choose template based on whether it's an index page
             if is_index_page:
-                # Use index template for index pages (no content)
-                rendered_html = index_template.render(title=title, css_path=css_path)
+                # Use index template for index pages (pass articles list)
+                rendered_html = index_template.render(
+                    title=title, css_path=css_path, articles=articles
+                )
             elif src_suffix in (".html", ".htm"):
                 # For non-index HTML files, copy verbatim
                 shutil.copyfile(page.source_path, str(target))

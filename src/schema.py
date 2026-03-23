@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+from typing import TypedDict
 
 
 class Frontmatter(BaseModel):
@@ -12,3 +13,10 @@ class Page(BaseModel):
     # helpful fields for consumers
     source_path: str = ""
     rel_path: str = ""
+
+
+class Article(TypedDict):
+    """Article metadata for listing in index pages."""
+
+    title: str
+    path: str

@@ -1,13 +1,16 @@
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Request
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from typing import Optional
 from pathlib import Path
 from contextlib import asynccontextmanager
 import logging
 
-from starlette.responses import Response, FileResponse, RedirectResponse
+from starlette.responses import Response, FileResponse, RedirectResponse, HTMLResponse
 
 from src.search import get_search_index, rebuild_search_index
+from src.schema import Article
+from src.pages import compile_and_copy_styles
 
 logger = logging.getLogger(__name__)
 
@@ -31,10 +34,25 @@ async def lifespan(app: FastAPI):
 
         pages_dir = Path(app.state.pages_dir)
         working_dir = Path(app.state.working_dir)
+        styles_dir = working_dir / "styles"
 
         logger.info("Loading pages for search index...")
         pages = load_pages(pages_dir, working_dir)
         logger.info(f"Loaded {len(pages)} page(s)")
+
+        # Store pages in app state for API access
+        app.state.pages = pages
+
+        # Compile and copy styles with cache-busting
+        logger.info("Compiling styles...")
+        css_path = compile_and_copy_styles(styles_dir, dist_path)
+        app.state.css_path = css_path
+        logger.info(f"Styles compiled: {css_path}")
+
+        # Setup Jinja2 templates
+        templates_dir = working_dir / "templates"
+        app.state.templates = Jinja2Templates(directory=str(templates_dir))
+        logger.info(f"Templates loaded from: {templates_dir}")
 
         logger.info("Building search index...")
         rebuild_search_index(pages)
@@ -69,6 +87,48 @@ async def search(
     return PaginationResponse(**result)
 
 
+@app.get("/api/v1/articles", response_model=PaginationResponse)
+async def list_articles(
+    limit: int = Query(10, ge=1, le=100, description="Maximum number of results"),
+    offset: int = Query(0, ge=0, description="Number of results to skip"),
+):
+    """List all articles with pagination support."""
+    pages = getattr(app.state, "pages", {})
+
+    # Convert pages to articles, filtering out index pages
+    articles = []
+    for key, page in pages.items():
+        # Skip index pages
+        if key.endswith("/index") or key == "index":
+            continue
+
+        # Get title from metadata or use fallback
+        title = page.metadata.get("title") if isinstance(page.metadata, dict) else None
+        if not title:
+            # Use the last part of the path as fallback
+            title = key.split("/")[-1].replace("-", " ").title()
+
+        article: Article = {
+            "title": title,
+            "path": key,
+        }
+        articles.append(article)
+
+    # Sort articles by title
+    articles.sort(key=lambda x: x["title"])
+
+    # Apply pagination
+    total_count = len(articles)
+    paginated_articles = articles[offset : offset + limit]
+
+    return PaginationResponse(
+        results=paginated_articles,
+        offset=offset,
+        limit=limit,
+        count=total_count,
+    )
+
+
 @app.get("/web/{path:path}")
 async def serve_web(path: str):
     """Serve files from the dist directory with .html extension fallback."""
@@ -95,13 +155,74 @@ async def serve_web(path: str):
     return Response(content="Not Found", status_code=404)
 
 
-@app.get("/web")
-async def serve_web_root():
-    """Serve web/index."""
-    index_path = dist_path / "index.html"
-    if index_path.is_file():
-        return FileResponse(index_path)
-    return Response(content="Not Found", status_code=404)
+@app.get("/web", response_class=HTMLResponse)
+async def serve_web_root(
+    request: Request,
+    page: int = Query(1, ge=1, description="Page number"),
+    limit: int = Query(10, ge=1, le=100, description="Items per page"),
+):
+    """Serve index page dynamically with pagination."""
+    templates = getattr(app.state, "templates", None)
+    css_path = getattr(app.state, "css_path", None)
+
+    if not templates:
+        # Fallback to static file if templates not available
+        index_path = dist_path / "index.html"
+        if index_path.is_file():
+            return FileResponse(index_path)
+        return Response(content="Not Found", status_code=404)
+
+    pages = getattr(app.state, "pages", {})
+
+    # Convert pages to articles, filtering out index pages
+    articles = []
+    for key, page_obj in pages.items():
+        # Skip index pages
+        if key.endswith("/index") or key == "index":
+            continue
+
+        # Get title from metadata or use fallback
+        title = (
+            page_obj.metadata.get("title")
+            if isinstance(page_obj.metadata, dict)
+            else None
+        )
+        if not title:
+            # Use the last part of the path as fallback
+            title = key.split("/")[-1].replace("-", " ").title()
+
+        article: Article = {
+            "title": title,
+            "path": key,
+        }
+        articles.append(article)
+
+    # Sort articles by title
+    articles.sort(key=lambda x: x["title"])
+
+    # Calculate pagination
+    total_count = len(articles)
+    offset = (page - 1) * limit
+    paginated_articles = articles[offset : offset + limit]
+
+    # Calculate total pages
+    total_pages = (total_count + limit - 1) // limit
+
+    # Render template with pagination data
+    return templates.TemplateResponse(
+        "index.html",
+        {
+            "request": request,
+            "articles": paginated_articles,
+            "css_path": css_path,
+            "page": page,
+            "limit": limit,
+            "total_count": total_count,
+            "total_pages": total_pages,
+            "has_prev": page > 1,
+            "has_next": page < total_pages,
+        },
+    )
 
 
 @app.get("/")

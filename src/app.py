@@ -165,13 +165,6 @@ async def serve_web_root(
     templates = getattr(app.state, "templates", None)
     css_path = getattr(app.state, "css_path", None)
 
-    if not templates:
-        # Fallback to static file if templates not available
-        index_path = dist_path / "index.html"
-        if index_path.is_file():
-            return FileResponse(index_path)
-        return Response(content="Not Found", status_code=404)
-
     pages = getattr(app.state, "pages", {})
 
     # Convert pages to articles, filtering out index pages
@@ -208,11 +201,10 @@ async def serve_web_root(
     # Calculate total pages
     total_pages = (total_count + limit - 1) // limit
 
-    # Render template with pagination data
     return templates.TemplateResponse(
-        "index.html",
-        {
-            "request": request,
+        request=request,
+        name="index.html",
+        context={
             "articles": paginated_articles,
             "css_path": css_path,
             "page": page,

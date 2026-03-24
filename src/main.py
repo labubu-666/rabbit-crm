@@ -36,12 +36,18 @@ class RebuildHandler(FileSystemEventHandler):
     """File system event handler that triggers site rebuild on changes."""
 
     def __init__(
-        self, working_dir: str, pages_dir: str, dist_dir: str, styles_dir: str
+        self,
+        working_dir: str,
+        pages_dir: str,
+        dist_dir: str,
+        styles_dir: str,
+        app_state,
     ):
         self.working_dir = working_dir
         self.pages_dir = pages_dir
         self.dist_dir = dist_dir
         self.styles_dir = styles_dir
+        self.app_state = app_state
         self.last_rebuild = 0
         self.debounce_seconds = 1.0  # Debounce to avoid multiple rapid rebuilds
 
@@ -93,8 +99,13 @@ class RebuildHandler(FileSystemEventHandler):
             f"Detected change in {Path(event.src_path).resolve()}, rebuilding..."
         )
         try:
+            from src.pages import load_pages, compile_and_copy_styles
+            from src.search import rebuild_search_index
+
             settings = Settings()
             Settings.model_validate(settings)
+
+            # Build the static site
             build_site(
                 self.working_dir,
                 self.pages_dir,
@@ -102,6 +113,29 @@ class RebuildHandler(FileSystemEventHandler):
                 self.styles_dir,
                 settings,
             )
+
+            # Update app state with new pages
+            pages_dir_p = Path(self.pages_dir)
+            working_dir_p = Path(self.working_dir)
+            dist_dir_p = Path(self.dist_dir)
+            styles_dir_p = Path(self.styles_dir)
+
+            logger.info("Reloading pages into app state...")
+            pages = load_pages(pages_dir_p, working_dir_p)
+            self.app_state.pages = pages
+            logger.info(f"Reloaded {len(pages)} page(s) into app state")
+
+            # Recompile styles and update CSS path in app state
+            logger.info("Recompiling styles...")
+            css_path = compile_and_copy_styles(styles_dir_p, dist_dir_p)
+            self.app_state.css_path = css_path
+            logger.info(f"Updated CSS path in app state: {css_path}")
+
+            # Rebuild search index with new pages
+            logger.info("Rebuilding search index...")
+            rebuild_search_index(pages)
+            logger.info("Search index rebuilt")
+
             self.last_rebuild = current_time
             logger.info("Rebuild complete!")
         except Exception as exc:
@@ -232,13 +266,22 @@ def serve(
     observer = None
     if dev:
         event_handler = RebuildHandler(
-            str(working_dir_path), str(pages_path), str(dist_path), str(styles_path)
+            str(working_dir_path),
+            str(pages_path),
+            str(dist_path),
+            str(styles_path),
+            app.state,
         )
         observer = Observer()
         observer.schedule(event_handler, str(pages_path), recursive=True)
         observer.schedule(event_handler, str(styles_path), recursive=True)
+        observer.schedule(
+            event_handler, str(working_dir_path / "templates"), recursive=True
+        )
         observer.start()
-        logger.info(f"Watching {pages_path} and {styles_path} for changes...")
+        logger.info(
+            f"Watching {pages_path}, {styles_path}, and templates for changes..."
+        )
 
     try:
         logger.info(f"Serving at http://{host}:{port}/web")

@@ -36,7 +36,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: astral-sh/setup-uv@v7.6.0
+      - uses: astral-sh/setup-uv@v8.0.0
         name: Setup uv
 
       - name: Install dependencies
@@ -68,7 +68,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: astral-sh/setup-uv@v7.6.0
+      - uses: astral-sh/setup-uv@v8.0.0
         name: Setup uv
 
       - name: Install dependencies

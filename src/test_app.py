@@ -33,6 +33,12 @@ class TestApp:
         with TestClient(app) as client:
             yield client
 
+    def test_root_redirects_to_web(self, client_with_knowledge_base):
+        """Test that root path redirects to /web."""
+        response = client_with_knowledge_base.get("/", follow_redirects=False)
+        assert response.status_code == 307  # Redirect
+        assert response.headers["location"] == "/web"
+
     def test_version_endpoint(self, client_with_knowledge_base):
         """Test the version endpoint."""
         response = client_with_knowledge_base.get("/api/v1/version")
@@ -82,12 +88,6 @@ class TestApp:
         response = client_with_knowledge_base.get("/api/v1/search?q=test&limit=0")
         assert response.status_code == 422  # Validation error
 
-    def test_root_redirects_to_web(self, client_with_knowledge_base):
-        """Test that root path redirects to /web."""
-        response = client_with_knowledge_base.get("/", follow_redirects=False)
-        assert response.status_code == 307  # Redirect
-        assert response.headers["location"] == "/web"
-
     def test_articles_endpoint(self, client_with_knowledge_base):
         """Test the articles endpoint returns a list of articles."""
         response = client_with_knowledge_base.get("/api/v1/articles")
@@ -115,6 +115,10 @@ class TestApp:
 
         # Test limit too low
         response = client_with_knowledge_base.get("/api/v1/articles?limit=0")
+        assert response.status_code == 422  # Validation error
+
+        # Test limit too low
+        response = client_with_knowledge_base.get("/api/v1/articles?limit=-1")
         assert response.status_code == 422  # Validation error
 
     def test_articles_structure(self, client_with_knowledge_base):

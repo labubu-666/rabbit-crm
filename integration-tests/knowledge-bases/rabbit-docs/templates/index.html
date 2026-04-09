@@ -10,21 +10,11 @@
         {% endfor %}
         </ul>
 
-        {% if total_pages > 1 %}
+        {% if total_count > limit %}
         <nav>
-            <a href="?page={{ page - 1 }}&limit={{ limit }}" {% if not has_prev %}disabled{% endif %}>← Previous</a>
-
-            <span>
-                {% for page_num in range(1, total_pages + 1) %}
-                    {% if page_num == page %}
-                        <strong>{{ page_num }}</strong>
-                    {% else %}
-                        <a href="?page={{ page_num }}&limit={{ limit }}">{{ page_num }}</a>
-                    {% endif %}
-                {% endfor %}
-            </span>
-
-            <a href="?page={{ page + 1 }}&limit={{ limit }}" {% if not has_next %}disabled{% endif %}>Next →</a>
+            <a href="?offset={{ offset - limit }}&limit={{ limit }}" {% if not has_prev %}disabled{% endif %}>← Previous</a>
+            <span>Page {{ (offset // limit) + 1 }} of {{ ((total_count + limit - 1) // limit) }}</span>
+            <a href="?offset={{ offset + limit }}&limit={{ limit }}" {% if not has_next %}disabled{% endif %}>Next →</a>
         </nav>
         {% endif %}
         {% endif %}

@@ -54,7 +54,7 @@ class TestApp:
         data = response.json()
         assert data["results"] == []
         assert data["offset"] == 0
-        assert data["limit"] == 10
+        assert data["limit"] == 25
         assert data["count"] == 0
 
     def test_search_endpoint_with_query(self, client_with_knowledge_base):

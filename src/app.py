@@ -24,6 +24,8 @@ class PaginationResponse(BaseModel):
 
 dist_path = Path("dist")
 
+DEFAULT_PAGINATION_SIZE = 25
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -74,7 +76,9 @@ async def version():
 @app.get("/api/v1/search", response_model=PaginationResponse)
 async def search(
     q: Optional[str] = Query(None, description="Search query"),
-    limit: int = Query(10, ge=1, le=100, description="Maximum number of results"),
+    limit: int = Query(
+        DEFAULT_PAGINATION_SIZE, ge=1, le=100, description="Maximum number of results"
+    ),
     offset: int = Query(0, ge=0, description="Number of results to skip"),
 ):
     """Search through indexed pages using trigram matching."""
@@ -89,7 +93,9 @@ async def search(
 
 @app.get("/api/v1/articles", response_model=PaginationResponse)
 async def list_articles(
-    limit: int = Query(25, ge=1, le=100, description="Maximum number of results"),
+    limit: int = Query(
+        DEFAULT_PAGINATION_SIZE, ge=1, le=100, description="Maximum number of results"
+    ),
     offset: int = Query(0, ge=0, description="Number of results to skip"),
 ):
     """List all articles with pagination support."""
@@ -158,8 +164,10 @@ async def serve_web(path: str):
 @app.get("/web", response_class=HTMLResponse)
 async def serve_web_root(
     request: Request,
-    page: int = Query(1, ge=1, description="Page number"),
-    limit: int = Query(10, ge=1, le=100, description="Items per page"),
+    offset: int = Query(0, ge=0, description="Number of results to skip"),
+    limit: int = Query(
+        DEFAULT_PAGINATION_SIZE, ge=1, le=100, description="Maximum number of results"
+    ),
 ):
     """Serve index page dynamically with pagination."""
     templates = getattr(app.state, "templates", None)
@@ -195,11 +203,11 @@ async def serve_web_root(
 
     # Calculate pagination
     total_count = len(articles)
-    offset = (page - 1) * limit
     paginated_articles = articles[offset : offset + limit]
 
-    # Calculate total pages
-    total_pages = (total_count + limit - 1) // limit
+    # Calculate pagination info
+    has_prev = offset > 0
+    has_next = offset + limit < total_count
 
     return templates.TemplateResponse(
         request=request,
@@ -207,12 +215,11 @@ async def serve_web_root(
         context={
             "articles": paginated_articles,
             "css_path": css_path,
-            "page": page,
+            "offset": offset,
             "limit": limit,
             "total_count": total_count,
-            "total_pages": total_pages,
-            "has_prev": page > 1,
-            "has_next": page < total_pages,
+            "has_prev": has_prev,
+            "has_next": has_next,
         },
     )
 

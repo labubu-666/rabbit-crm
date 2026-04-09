@@ -18,11 +18,12 @@
         <li><a href="/web/{{ article.path }}">{{ article.title }}</a></li>
     {% endfor %}
     </ul>
+    {% endif %}
+</article>
+<nav>
+    <a href="?page={{ page - 1 }}&limit={{ limit }}" {% if not has_prev %}disabled{% endif %}>← Previous</a>
 
-    <nav>
-        <a href="?page={{ page - 1 }}&limit={{ limit }}" {% if not has_prev %}disabled{% endif %}>← Previous</a>
-
-        <span>
+    <span>
             {% for page_num in range(1, total_pages + 1) %}
                 {% if page_num == page %}
                     <strong>{{ page_num }}</strong>
@@ -32,10 +33,8 @@
             {% endfor %}
         </span>
 
-        <a href="?page={{ page + 1 }}&limit={{ limit }}" {% if not has_next %}disabled{% endif %}>Next →</a>
-    </nav>
-    {% endif %}
-</article>
+    <a href="?page={{ page + 1 }}&limit={{ limit }}" {% if not has_next %}disabled{% endif %}>Next →</a>
+</nav>
 <footer>
     v0.0.0
 </footer>

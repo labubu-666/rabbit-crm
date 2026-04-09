@@ -89,7 +89,7 @@ async def search(
 
 @app.get("/api/v1/articles", response_model=PaginationResponse)
 async def list_articles(
-    limit: int = Query(10, ge=1, le=100, description="Maximum number of results"),
+    limit: int = Query(25, ge=1, le=100, description="Maximum number of results"),
     offset: int = Query(0, ge=0, description="Number of results to skip"),
 ):
     """List all articles with pagination support."""

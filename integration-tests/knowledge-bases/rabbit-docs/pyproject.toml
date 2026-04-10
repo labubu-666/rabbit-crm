@@ -5,8 +5,8 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "rabbit",
+    "rabbit-crm",
 ]
 
 [tool.uv.sources]
-rabbit = { workspace = true }
+rabbit-crm = { workspace = true }

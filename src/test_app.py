@@ -41,11 +41,13 @@ class TestApp:
 
     def test_version_endpoint(self, client_with_knowledge_base):
         """Test the version endpoint."""
+        from src import __version__
+
         response = client_with_knowledge_base.get("/api/v1/version")
         assert response.status_code == 200
         data = response.json()
         assert "version" in data
-        assert data["version"] == "0.0.0"
+        assert data["version"] == __version__
 
     def test_search_endpoint_without_query(self, client_with_knowledge_base):
         """Test search endpoint without query parameter."""

@@ -1,6 +1,6 @@
 [project]
 name = "rabbit-crm"
-version = "0.0.0"
+dynamic = ["version"]
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -22,8 +22,14 @@ dependencies = [
 rabbit = "src.main:cli"
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/_version.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src"]
@@ -31,6 +37,7 @@ packages = ["src"]
 [dependency-groups]
 dev = [
     "build==1.4.2",
+    "hatch-vcs==0.5.0",
     "httpx==0.28.1",
     "pre-commit==4.5.1",
     "pytest==9.0.2",

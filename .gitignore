@@ -12,3 +12,4 @@ htmlcov/
 .env
 coverage.md
 rabbit.iml
+src/_version.py

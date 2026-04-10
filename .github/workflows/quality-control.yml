@@ -58,7 +58,7 @@ jobs:
         run: |
           uv sync --dev
 
-      - name: Pre-publish check
+      - name: Pre-deploy check
         run: |
           uv run python -m build
           uv run twine check dist/*

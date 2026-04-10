@@ -18,6 +18,10 @@
 
 # Dev
 
+## Install
+
+    uv add git+ssh://git@github.com/labubu-666/rabbit.git@main
+
 ## Build natively
 
     uv run rabbit build
@@ -37,3 +41,7 @@
     twine check dist/*
 
     TWINE_USERNAME= TWINE_PASSWORD= twine upload dist/*
+
+## Trigger deploy on CD
+
+    git push --tags

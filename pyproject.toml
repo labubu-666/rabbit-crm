@@ -36,6 +36,7 @@ dev = [
     "pytest==9.0.2",
     "pytest-cov==7.1.0",
     "ruff==0.15.10",
+    "twine==6.2.0",
 ]
 
 [tool.pytest.ini_options]

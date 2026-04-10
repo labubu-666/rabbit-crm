@@ -11,6 +11,7 @@ from starlette.responses import Response, FileResponse, RedirectResponse, HTMLRe
 from src.search import get_search_index, rebuild_search_index
 from src.schema import Article
 from src.pages import compile_and_copy_styles
+from src import __version__
 
 logger = logging.getLogger(__name__)
 
@@ -65,12 +66,14 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down app...")
 
 
-app = FastAPI(docs_url="/api/docs", title="rabbit", version="0.0.0", lifespan=lifespan)
+app = FastAPI(
+    docs_url="/api/docs", title="rabbit", version=__version__, lifespan=lifespan
+)
 
 
 @app.get("/api/v1/version")
 async def version():
-    return {"version": "0.0.0"}
+    return {"version": __version__}
 
 
 @app.get("/api/v1/search", response_model=PaginationResponse)

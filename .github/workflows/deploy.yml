@@ -1,4 +1,4 @@
-name: Deploy
+name: deploy
 
 on:
   push:
@@ -21,4 +21,4 @@ jobs:
 
       - name: Build
         run: |
-          python -m build
+          uv run python -m build

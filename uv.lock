@@ -5,7 +5,7 @@ requires-python = ">=3.12"
 [manifest]
 members = [
     "hello-world",
-    "rabbit",
+    "rabbit-crm",
     "rabbit-docs",
 ]
 
@@ -383,11 +383,11 @@ name = "hello-world"
 version = "0.0.0"
 source = { virtual = "integration-tests/knowledge-bases/hello-world" }
 dependencies = [
-    { name = "rabbit" },
+    { name = "rabbit-crm" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "rabbit", editable = "." }]
+requires-dist = [{ name = "rabbit-crm", editable = "." }]
 
 [[package]]
 name = "httpcore"
@@ -979,7 +979,7 @@ wheels = [
 ]
 
 [[package]]
-name = "rabbit"
+name = "rabbit-crm"
 version = "0.0.0"
 source = { editable = "." }
 dependencies = [
@@ -1038,11 +1038,11 @@ name = "rabbit-docs"
 version = "0.0.0"
 source = { virtual = "integration-tests/knowledge-bases/rabbit-docs" }
 dependencies = [
-    { name = "rabbit" },
+    { name = "rabbit-crm" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "rabbit", editable = "." }]
+requires-dist = [{ name = "rabbit-crm", editable = "." }]
 
 [[package]]
 name = "readme-renderer"

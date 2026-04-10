@@ -10,7 +10,7 @@ permissions:
   packages: write
 
 jobs:
-  build:
+  publish:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -25,3 +25,10 @@ jobs:
         run: |
           uv run python -m build
           uv run twine check dist/*
+
+      - name: Upload
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
+        run: |
+          uv run twine upload dist/* --verbose

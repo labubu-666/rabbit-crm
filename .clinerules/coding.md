@@ -1,0 +1,2 @@
+- Keep things simple.
+  - Don't go overboard and write stuff that was not asked for by the user.

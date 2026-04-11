@@ -32,6 +32,14 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def load_settings() -> Settings:
+    logger.info("Loading settings.")
+    settings = Settings()
+    Settings.model_validate(settings)
+    logger.info("Loaded settings '%s'.", settings.model_dump())
+    return settings
+
+
 class RebuildHandler(FileSystemEventHandler):
     """File system event handler that triggers site rebuild on changes."""
 
@@ -168,9 +176,7 @@ def cli():
 def build(working_dir: str, pages_dir: str, dist_dir: str, styles_dir: str):
     """Build the site into the dist directory."""
     logger.info("Loading settings.")
-    settings = Settings()
-    Settings.model_validate(settings)
-    logger.info("Loaded settings '%s'.", settings.model_dump())
+    settings = load_settings()
 
     # Resolve working_dir first
     working_dir_path = Path(working_dir).resolve()
@@ -229,8 +235,7 @@ def serve(
     dist_path = (working_dir_path / dist_dir).resolve()
     styles_path = (working_dir_path / styles_dir).resolve()
 
-    settings = Settings()
-    Settings.model_validate(settings)
+    settings = load_settings()
 
     # Store paths for startup event
     app.state.working_dir = str(working_dir_path)

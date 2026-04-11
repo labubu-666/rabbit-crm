@@ -12,6 +12,7 @@ from src.search import get_search_index, rebuild_search_index
 from src.schema import Article
 from src.pages import compile_and_copy_styles
 from src import __version__
+from src.admin import router as admin_router
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +70,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     docs_url="/api/docs", title="rabbit", version=__version__, lifespan=lifespan
 )
+
+app.include_router(admin_router)
 
 
 @app.get("/api/v1/version")

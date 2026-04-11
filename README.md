@@ -1,12 +1,11 @@
 # rabbit-crm
 
-[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+[![](https://img.shields.io/pypi/v/rabbit-crm.svg)](https://pypi.org/pypi/name/) [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
 # Quick start
 
 ## Install
-
-    uv add git+ssh://git@github.com/labubu-666/rabbit.git@main
+    pip install rabbit-crm
 
 ## Serve
 
@@ -40,7 +39,7 @@
 
     twine check dist/*
 
-    TWINE_USERNAME= TWINE_PASSWORD= twine upload dist/*
+    TWINE_USERNAME=__token__ TWINE_PASSWORD=foobar twine upload dist/*
 
 ## Trigger deploy on CD
 

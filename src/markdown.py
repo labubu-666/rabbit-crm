@@ -120,6 +120,39 @@ def _render_markdown(text: str, working_dir: str = None) -> str:
 
     text = re.sub(block_code_pattern, save_block_code, text, flags=re.DOTALL)
 
+    # Tab-indented code blocks (must be processed before escaping)
+    # Lines starting with a tab or 4 spaces are treated as code
+    # Match one or more consecutive indented lines
+    tab_code_pattern = r"(?:^(?:\t|    ).+$\n?)+"
+
+    def save_tab_code(m):
+        placeholder = f"__BLOCK_CODE_{len(block_codes)}__"
+        # Remove the leading tab or 4 spaces from each line
+        code = m.group(0)
+        lines = code.split("\n")
+        dedented_lines = []
+        for line in lines:
+            if line.startswith("\t"):
+                dedented_lines.append(line[1:])
+            elif line.startswith("    "):
+                dedented_lines.append(line[4:])
+            else:
+                dedented_lines.append(line)
+        dedented_code = "\n".join(dedented_lines)
+
+        # Create a match-like object with no language (group 1) and the dedented code (group 2)
+        class TabCodeMatch:
+            def group(self, n):
+                if n == 1:
+                    return None
+                elif n == 2:
+                    return dedented_code.rstrip("\n")
+
+        block_codes.append(TabCodeMatch())
+        return placeholder
+
+    text = re.sub(tab_code_pattern, save_tab_code, text, flags=re.MULTILINE)
+
     text = html_module.escape(text)
 
     # headings

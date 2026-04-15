@@ -3,13 +3,11 @@ import shutil
 from pathlib import Path
 from typing import Union
 
-from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from pages import compile_and_copy_styles, load_pages
 from settings import Settings
 from src.utils.file_manager import create_folder
 from src.search import rebuild_search_index
-from src.schema import Article
 
 logger = logging.getLogger(__name__)
 
@@ -21,14 +19,11 @@ def build_site(
     styles_dir: Union[str, Path],
     settings: Settings,
 ) -> Path:
-    """Load pages from `pages_dir`, render them to HTML files and write into `dist_dir`.
-
-    Each page will be written to <dist_dir>/<rel_path>.html where rel_path is the
-    POSIX relative path of the source file without extension (e.g., `de/index`).
+    """Build static assets (styles) only. Pages are served from memory.
 
     Args:
         working_dir: Working directory to load pages from.
-        pages_dir: Directory containing source pages
+        pages_dir: Directory containing source pages (used for validation)
         dist_dir: Directory to write output files
         styles_dir: Directory containing styles
         settings: Settings object
@@ -36,7 +31,6 @@ def build_site(
     Returns the Path to the distribution directory.
     """
     working_dir_p = Path(working_dir)
-
     pages_dir_p = Path(pages_dir)
 
     # Clean dist directory before building to avoid stale artifacts
@@ -48,111 +42,26 @@ def build_site(
     dist_p = create_folder(dist_dir)
 
     # Compile and copy styles with cache-busting
+    logger.info("Building assets (styles only)...")
     css_path = compile_and_copy_styles(styles_dir, dist_dir)
 
+    if css_path:
+        logger.info(f"Assets built successfully: {css_path}")
+    else:
+        logger.info("No styles to build")
+
+    # Load pages to verify they can be loaded (but don't write HTML)
     pages = load_pages(pages_dir_p, working_dir_p)
 
     if not pages:
-        logger.info("No pages found to build")
-        return dist_p
-
-    logger.info(f"Found {len(pages)} page(s) to build")
+        logger.info("No pages found")
+    else:
+        logger.info(f"Found {len(pages)} page(s) (will be served from memory)")
 
     # Rebuild search index with loaded pages
-    logger.info("Building search index...")
-    rebuild_search_index(pages)
-    logger.info("Search index built successfully")
-
-    # Use working directory for templates
-    template_dir = working_dir_p / "templates"
-    env = Environment(
-        loader=FileSystemLoader(str(template_dir)),
-        autoescape=select_autoescape(["html", "xml"]),
-    )
-
-    article_template = env.get_template("article.html")
-    index_template = env.get_template("index.html")
-
-    # Prepare articles list for index pages
-    articles = []
-    for key, page in pages.items():
-        # Skip index pages
-        if key.endswith("/index") or key == "index":
-            continue
-
-        # Get title from metadata or use fallback
-        title = page.metadata.get("title") if isinstance(page.metadata, dict) else None
-        if not title:
-            # Use the last part of the path as fallback
-            title = key.split("/")[-1].replace("-", " ").title()
-
-        article: Article = {
-            "title": title,
-            "path": key,
-        }
-        articles.append(article)
-
-    # Sort articles by title
-    articles.sort(key=lambda x: x["title"])
-
-    # Create root index.html using the index template
-    root_index = dist_p / "index.html"
-    try:
-        # css_path already contains absolute path from compile_and_copy_styles
-        rendered_html = index_template.render(
-            title="Home", css_path=css_path, articles=articles
-        )
-        root_index.write_text(rendered_html, encoding="utf-8")
-        logger.info(f"  Created root index: {root_index.resolve()}")
-    except Exception as exc:
-        logger.warning("Failed to write root index: %s", exc)
-
-    for key, page in pages.items():
-        # target path is dist/<key>.html
-        target = dist_p.joinpath(f"{key}.html")
-        target.parent.mkdir(parents=True, exist_ok=True)
-
-        src_suffix = Path(page.source_path).suffix.lower()
-
-        # Determine if this is an index page
-        is_index_page = key.endswith("/index") or key == "index"
-
-        try:
-            # Get title from metadata or use fallback
-            title = (
-                page.metadata.get("title") if isinstance(page.metadata, dict) else None
-            )
-            if not title:
-                # fallback title
-                title = key.split("/")[-1]
-
-            # Choose template based on whether it's an index page
-            if is_index_page:
-                # Use index template for index pages (pass articles list)
-                rendered_html = index_template.render(
-                    title=title, css_path=css_path, articles=articles
-                )
-            elif src_suffix in (".html", ".htm"):
-                # For non-index HTML files, copy verbatim
-                shutil.copyfile(page.source_path, str(target))
-                logger.info(
-                    f"  {Path(page.source_path).resolve()} -> {target.resolve()}"
-                )
-                continue
-            else:
-                # Use post template for markdown pages
-                rendered_html = article_template.render(
-                    title=title, content=page.html, css_path=css_path
-                )
-
-            target.write_text(rendered_html, encoding="utf-8")
-            logger.info(f"  {Path(page.source_path).resolve()} -> {target.resolve()}")
-        except Exception as exc:
-            logger.warning(
-                "Failed to write page %s -> %s: %s",
-                Path(page.source_path).resolve(),
-                target.resolve(),
-                exc,
-            )
+    if pages:
+        logger.info("Building search index...")
+        rebuild_search_index(pages)
+        logger.info("Search index built successfully")
 
     return dist_p

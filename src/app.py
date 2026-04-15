@@ -9,7 +9,7 @@ import logging
 from starlette.responses import Response, FileResponse, RedirectResponse, HTMLResponse
 
 from src.search import get_search_index, rebuild_search_index
-from src.schema import Article
+from src.schema import Article, Page
 from src.pages import compile_and_copy_styles
 from src import __version__
 from src.admin import router as admin_router
@@ -142,29 +142,109 @@ async def list_articles(
 
 
 @app.get("/web/{path:path}")
-async def serve_web(path: str):
-    """Serve files from the dist directory with .html extension fallback."""
+async def serve_web(request: Request, path: str):
+    """Serve pages from memory or static assets from disk."""
     if not path:
         path = "index"
 
+    # First, check if it's a static asset (CSS, JS, images, etc.)
     file_path = dist_path / path
-
-    # If the path exists as-is, serve it
     if file_path.is_file():
         return FileResponse(file_path)
 
-    # Try adding .html extension
-    html_path = dist_path / f"{path}.html"
-    if html_path.is_file():
-        return FileResponse(html_path)
+    # Try to serve page from memory
+    pages = getattr(app.state, "pages", {})
+    templates = getattr(app.state, "templates", None)
+    css_path = getattr(app.state, "css_path", None)
 
-    # Check for index.html in directory
-    if file_path.is_dir():
-        index_path = file_path / "index.html"
-        if index_path.is_file():
-            return FileResponse(index_path)
+    # Try exact path match
+    if path in pages:
+        page = pages[path]
+        return _render_page_from_memory(request, page, path, templates, css_path, pages)
+
+    # Try with /index suffix for directory-style paths
+    index_path = f"{path}/index"
+    if index_path in pages:
+        page = pages[index_path]
+        return _render_page_from_memory(
+            request, page, index_path, templates, css_path, pages
+        )
+
+    # Check if path is a directory and has index
+    if path.endswith("/"):
+        path_without_slash = path.rstrip("/")
+        if path_without_slash in pages:
+            page = pages[path_without_slash]
+            return _render_page_from_memory(
+                request, page, path_without_slash, templates, css_path, pages
+            )
 
     return Response(content="Not Found", status_code=404)
+
+
+def _render_page_from_memory(
+    request: Request, page: Page, key: str, templates, css_path: str, pages: dict
+) -> HTMLResponse:
+    """Render a page from memory using templates."""
+    if not templates:
+        return Response(content="Templates not configured", status_code=500)
+
+    # Get title from metadata or use fallback
+    title = page.metadata.get("title") if isinstance(page.metadata, dict) else None
+    if not title:
+        title = key.split("/")[-1].replace("-", " ").title()
+
+    # Determine if this is an index page
+    is_index_page = key.endswith("/index") or key == "index"
+
+    if is_index_page:
+        # Prepare articles list for index pages
+        articles = []
+        for page_key, page_obj in pages.items():
+            # Skip index pages
+            if page_key.endswith("/index") or page_key == "index":
+                continue
+
+            # Get title from metadata or use fallback
+            page_title = (
+                page_obj.metadata.get("title")
+                if isinstance(page_obj.metadata, dict)
+                else None
+            )
+            if not page_title:
+                page_title = page_key.split("/")[-1].replace("-", " ").title()
+
+            article: Article = {
+                "title": page_title,
+                "path": page_key,
+            }
+            articles.append(article)
+
+        # Sort articles by title
+        articles.sort(key=lambda x: x["title"])
+
+        return templates.TemplateResponse(
+            request=request,
+            name="index.html",
+            context={
+                "title": title,
+                "css_path": css_path,
+                "articles": articles,
+                "version": __version__,
+            },
+        )
+    else:
+        # Render article page
+        return templates.TemplateResponse(
+            request=request,
+            name="article.html",
+            context={
+                "title": title,
+                "content": page.html,
+                "css_path": css_path,
+                "version": __version__,
+            },
+        )
 
 
 @app.get("/web", response_class=HTMLResponse)
@@ -226,6 +306,7 @@ async def serve_web_root(
             "total_count": total_count,
             "has_prev": has_prev,
             "has_next": has_next,
+            "version": __version__,
         },
     )
 

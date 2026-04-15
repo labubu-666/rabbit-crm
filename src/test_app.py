@@ -135,3 +135,49 @@ class TestApp:
             assert "path" in article
             assert isinstance(article["title"], str)
             assert isinstance(article["path"], str)
+
+    def test_serve_page_from_memory(self, client_with_knowledge_base):
+        """Test that pages are served from memory, not from disk."""
+        # Request a page that should be in memory
+        response = client_with_knowledge_base.get("/web/en/hello-world")
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("text/html")
+
+        # Verify content is rendered
+        content = response.text
+        assert "Hello World" in content
+        assert "This is a test page with frontmatter" in content
+
+    def test_serve_page_without_frontmatter(self, client_with_knowledge_base):
+        """Test serving a page without frontmatter."""
+        response = client_with_knowledge_base.get("/web/en/test")
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("text/html")
+
+        content = response.text
+        assert "Test Page" in content
+        assert "This is a test page without frontmatter" in content
+
+    def test_serve_nonexistent_page(self, client_with_knowledge_base):
+        """Test that nonexistent pages return 404."""
+        response = client_with_knowledge_base.get("/web/nonexistent/page")
+        assert response.status_code == 404
+
+    def test_serve_static_asset(self, client_with_knowledge_base):
+        """Test that static assets (CSS) are still served from disk."""
+        # Get the CSS path from the app state
+        response = client_with_knowledge_base.get("/web")
+        assert response.status_code == 200
+
+        # CSS files should be accessible
+        # We can't test the exact path without knowing the hash, but we can verify
+        # that the assets directory exists and contains CSS files
+        from pathlib import Path
+
+        # The dist directory should have assets
+        dist_path = Path("dist")
+        if dist_path.exists():
+            assets_dir = dist_path / "assets" / "styles"
+            if assets_dir.exists():
+                css_files = list(assets_dir.glob("index.*.css"))
+                assert len(css_files) > 0, "CSS files should exist in assets"

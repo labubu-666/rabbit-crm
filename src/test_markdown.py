@@ -101,3 +101,63 @@ console.log("second");
     assert 'class="language-javascript"' in rendered_html
     assert "print(&quot;first&quot;)" in rendered_html
     assert "console.log(&quot;second&quot;);" in rendered_html
+
+
+def test_render_tab_indented_code():
+    """Test that tab-indented code blocks are rendered correctly"""
+    rendered_html = _render_markdown("""Some text
+
+\tdef hello():
+\t    print("world")
+
+More text""")
+
+    assert "<pre><code>" in rendered_html
+    assert "def hello():<br/>    print(&quot;world&quot;)" in rendered_html
+    assert "</code></pre>" in rendered_html
+
+
+def test_render_four_space_indented_code():
+    """Test that 4-space indented code blocks are rendered correctly"""
+    rendered_html = _render_markdown("""Some text
+
+    def hello():
+        print("world")
+
+More text""")
+
+    assert "<pre><code>" in rendered_html
+    assert "def hello():<br/>    print(&quot;world&quot;)" in rendered_html
+    assert "</code></pre>" in rendered_html
+
+
+def test_render_tab_indented_code_escapes_html():
+    """Test that HTML in tab-indented code blocks is properly escaped"""
+    rendered_html = _render_markdown("""
+\t<div>Hello</div>
+\t<span>World</span>
+""")
+
+    assert "&lt;div&gt;Hello&lt;/div&gt;" in rendered_html
+    assert "&lt;span&gt;World&lt;/span&gt;" in rendered_html
+    assert "<pre><code>" in rendered_html
+
+
+def test_render_mixed_fenced_and_indented_code():
+    """Test that both fenced and indented code blocks work together"""
+    rendered_html = _render_markdown("""
+```python
+print("fenced")
+```
+
+Some text
+
+\tprint("indented")
+
+More text""")
+
+    assert 'class="language-python"' in rendered_html
+    assert "print(&quot;fenced&quot;)" in rendered_html
+    assert "print(&quot;indented&quot;)" in rendered_html
+    # Should have two code blocks
+    assert rendered_html.count("<pre><code") == 2

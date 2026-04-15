@@ -26,9 +26,8 @@ body {
 }
 
 code {
-  color: pink;
+  color: magenta;
   font-family: monospace;
-  font-size: 75%;
   padding: 1px;
 }
 
@@ -65,7 +64,7 @@ p {
 }
 
 pre {
-  background-color: lightgray;
+  border: 1px solid gray;
   font-family: monospace, monospace;
   font-size: 90%;
   padding: 1em;

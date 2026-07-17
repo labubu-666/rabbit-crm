@@ -14,11 +14,11 @@ class TestBuildSite:
 
         # Build the site
         result = build_site(
-            working_dir=working_dir,
-            pages_dir=pages_dir,
             dist_dir=dist_dir,
-            styles_dir=styles_dir,
+            pages_dir=pages_dir,
             settings=settings,
+            styles_dir=styles_dir,
+            working_dir=working_dir,
         )
 
         # Verify the dist directory was created

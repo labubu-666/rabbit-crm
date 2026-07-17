@@ -158,13 +158,10 @@ def cli():
 
 @cli.command()
 @click.option(
-    "--working-dir", "working_dir", "-w", default=".", help="Working directory"
+    "--dist-dir", "dist_dir", "-d", default="dist", help="Path to output dist directory"
 )
 @click.option(
     "--pages-dir", "pages_dir", "-p", default="pages", help="Path to pages directory"
-)
-@click.option(
-    "--dist-dir", "dist_dir", "-d", default="dist", help="Path to output dist directory"
 )
 @click.option(
     "--styles-dir",
@@ -173,7 +170,19 @@ def cli():
     default="styles",
     help="Path to styles directory",
 )
-def build(working_dir: str, pages_dir: str, dist_dir: str, styles_dir: str):
+@click.option(
+    "--templates-dir",
+    "templates_dir",
+    "-p",
+    default="templates",
+    help="Path to templates directory",
+)
+@click.option(
+    "--working-dir", "working_dir", "-w", default=".", help="Working directory"
+)
+def build(
+    working_dir: str, pages_dir: str, templates_dir: str, dist_dir: str, styles_dir: str
+):
     """Build the site into the dist directory."""
     logger.info("Loading settings.")
     settings = load_settings()
@@ -199,13 +208,10 @@ def build(working_dir: str, pages_dir: str, dist_dir: str, styles_dir: str):
 
 @cli.command()
 @click.option(
-    "--working-dir", "working_dir", "-w", default=".", help="Working directory"
+    "--dist-dir", "dist_dir", "-d", default="dist", help="Path to output dist directory"
 )
 @click.option(
     "--pages-dir", "pages_dir", "-p", default="pages", help="Path to pages directory"
-)
-@click.option(
-    "--dist-dir", "dist_dir", "-d", default="dist", help="Path to output dist directory"
 )
 @click.option(
     "--styles-dir",
@@ -213,6 +219,16 @@ def build(working_dir: str, pages_dir: str, dist_dir: str, styles_dir: str):
     "-s",
     default="styles",
     help="Path to styles directory",
+)
+@click.option(
+    "--templates-dir",
+    "templates_dir",
+    "-p",
+    default="templates",
+    help="Path to templates directory",
+)
+@click.option(
+    "--working-dir", "working_dir", "-w", default=".", help="Working directory"
 )
 @click.option("--port", "-P", default=8000, help="Port to serve on")
 @click.option("--host", "-h", default="127.0.0.1", help="Host to bind to")
@@ -222,6 +238,7 @@ def serve(
     pages_dir: str,
     dist_dir: str,
     styles_dir: str,
+    templates_dir: str,
     port: int,
     host: str,
     dev: bool,

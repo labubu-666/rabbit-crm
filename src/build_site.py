@@ -4,8 +4,8 @@ from pathlib import Path
 from typing import Union
 
 
-from pages import compile_and_copy_styles, load_pages
-from settings import Settings
+from src.pages import compile_and_copy_styles, load_pages
+from src.settings import Settings
 from src.utils.file_manager import create_folder
 from src.search import rebuild_search_index
 
@@ -13,11 +13,11 @@ logger = logging.getLogger(__name__)
 
 
 def build_site(
-    working_dir: Union[str, Path],
-    pages_dir: Union[str, Path],
     dist_dir: Union[str, Path],
-    styles_dir: Union[str, Path],
+    pages_dir: Union[str, Path],
     settings: Settings,
+    styles_dir: Union[str, Path],
+    working_dir: Union[str, Path],
 ) -> Path:
     """Build static assets (styles) only. Pages are served from memory.
 

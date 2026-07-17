@@ -18,11 +18,11 @@ class TestApp:
         # Build the site
         settings = Settings()
         build_site(
-            working_dir=working_dir,
-            pages_dir=pages_dir,
             dist_dir=dist_dir,
-            styles_dir=styles_dir,
+            pages_dir=pages_dir,
             settings=settings,
+            styles_dir=styles_dir,
+            working_dir=working_dir,
         )
 
         # Set app state for lifespan

@@ -115,11 +115,11 @@ class RebuildHandler(FileSystemEventHandler):
 
             # Build the static site
             build_site(
-                self.working_dir,
-                self.pages_dir,
                 self.dist_dir,
-                self.styles_dir,
+                self.pages_dir,
                 settings,
+                self.styles_dir,
+                self.working_dir,
             )
 
             # Update app state with new pages
@@ -188,11 +188,11 @@ def build(working_dir: str, pages_dir: str, dist_dir: str, styles_dir: str):
 
     logger.info(f"Building site from {pages_path} to {dist_path}...")
     build_site(
-        str(working_dir_path),
-        str(pages_path),
         str(dist_path),
-        str(styles_path),
+        str(pages_path),
         settings,
+        str(styles_path),
+        str(working_dir_path),
     )
     logger.info("Build complete!")
 
@@ -250,11 +250,11 @@ def serve(
         # Initial build
         logger.info(f"Building site from {pages_path} to {dist_path}...")
         build_site(
-            str(working_dir_path),
-            str(pages_path),
             str(dist_path),
-            str(styles_path),
+            str(pages_path),
             settings,
+            str(styles_path),
+            str(working_dir_path),
         )
         logger.info("Initial build complete!")
     else:

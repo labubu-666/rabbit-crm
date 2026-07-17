@@ -13,7 +13,7 @@
     uv run rabbit serve
 
 ### Specify directory with
-    uv run --directory integration-tests/knowledge-bases/hello-world rabbit serve
+    uv run rabbit serve --working-dir integration-tests/knowledge-bases/hello-world
 
 # Dev
 

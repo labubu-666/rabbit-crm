@@ -122,7 +122,6 @@ def compile_and_copy_styles(
         return None
 
     try:
-        # Run sass command using subprocess
         logger.info(f"Compiling SCSS: {scss_input.resolve()} -> {css_output.resolve()}")
         result = subprocess.run(
             ["sass", str(scss_input), str(css_output)],

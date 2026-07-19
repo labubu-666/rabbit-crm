@@ -40,9 +40,24 @@ def load_settings() -> Settings:
     return settings
 
 
-class RebuildHandler(FileSystemEventHandler):
-    """File system event handler that triggers site rebuild on changes."""
+def init_directories(pages_path: Path, styles_path: Path, templates_path: Path):
+    pages_path.mkdir(exist_ok=True)
+    pages_index = pages_path / "index.html"
+    if not pages_index.exists():
+        pages_index.write_text("<!DOCTYPE html>\n<html></html>\n")
 
+    styles_path.mkdir(exist_ok=True)
+    index_scss = styles_path / "index.scss"
+    if not index_scss.exists():
+        index_scss.write_text("")
+
+    templates_path.mkdir(exist_ok=True)
+    templates_index = templates_path / "index.html"
+    if not templates_index.exists():
+        templates_index.write_text("<!DOCTYPE html>\n<html></html>\n")
+
+
+class RebuildHandler(FileSystemEventHandler):
     def __init__(
         self,
         working_dir: str,
@@ -110,8 +125,7 @@ class RebuildHandler(FileSystemEventHandler):
             from src.pages import load_pages, compile_and_copy_styles
             from src.search import rebuild_search_index
 
-            settings = Settings()
-            Settings.model_validate(settings)
+            settings = self.app_state.settings
 
             # Build the static site
             build_site(
@@ -187,14 +201,14 @@ def build(
     logger.info("Loading settings.")
     settings = load_settings()
 
-    # Resolve working_dir first
     working_dir_path = Path(working_dir).resolve()
+    pages_path = working_dir_path / pages_dir
+    styles_path = working_dir_path / styles_dir
+    templates_path = working_dir_path / templates_dir
 
-    # Resolve all paths relative to working_dir
-    pages_path = (working_dir_path / pages_dir).resolve()
-    dist_path = (working_dir_path / dist_dir).resolve()
-    styles_path = (working_dir_path / styles_dir).resolve()
+    init_directories(pages_path, styles_path, templates_path)
 
+    dist_path = working_dir_path / dist_dir
     logger.info(f"Building site from {pages_path} to {dist_path}...")
     build_site(
         str(dist_path),
@@ -244,15 +258,17 @@ def serve(
     dev: bool,
 ):
     """Serve the site from the dist directory. Use --dev for live reload."""
-    # Resolve working_dir first
     working_dir_path = Path(working_dir).resolve()
 
-    # Resolve all paths relative to working_dir
-    pages_path = (working_dir_path / pages_dir).resolve()
-    dist_path = (working_dir_path / dist_dir).resolve()
-    styles_path = (working_dir_path / styles_dir).resolve()
+    pages_path = working_dir_path / pages_dir
+    styles_path = working_dir_path / styles_dir
+    templates_path = working_dir_path / templates_dir
+
+    init_directories(pages_path, styles_path, templates_path)
 
     settings = load_settings()
+
+    dist_path = working_dir_path / dist_dir
 
     # Store paths for startup event
     app.state.working_dir = str(working_dir_path)

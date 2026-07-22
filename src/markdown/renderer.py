@@ -69,19 +69,35 @@ def _render_markdown(text: str, working_dir: str = None) -> str:
 
     text = re.sub(tab_code_pattern, save_tab_code, text, flags=re.MULTILINE)
 
+    # Save markdown links before processing linkification
+    # [text](url)
+    markdown_links = []
+
+    def save_markdown_link(m):
+        placeholder = f"__MARKDOWN_LINK_{len(markdown_links)}__"
+        markdown_links.append(m)
+        return placeholder
+
+    text = re.sub(r"\[([^]]+)]\(([^)]+)\)", save_markdown_link, text)
+
     text = html_module.escape(text)
 
     # headings
     # # title
     text = re.sub(r"^(#{1,6})\s+(.*)$", repl_heading, text, flags=re.M)
 
-    # links
-    # [text](url)
+    # linkify plain URLs (http/https)
+    # https://example.com or http://example.com
     text = re.sub(
-        r"\[([^]]+)]\(([^)]+)\)",
-        repl_link,
+        r"(?<![\[&\w])https?://[^\s<>\")'`&]+(?:&amp;[^\s<>\")'`&]+)*",
+        lambda m: f'<a href="{m.group(0)}">{m.group(0)}</a>',
         text,
     )
+
+    # restore markdown links
+    for i, match in enumerate(markdown_links):
+        placeholder = f"__MARKDOWN_LINK_{i}__"
+        text = text.replace(placeholder, repl_link(match))
 
     # inline code
     # `inline_code`

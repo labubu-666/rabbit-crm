@@ -1,3 +1,5 @@
+import pytest
+
 from src.markdown import _render_markdown
 
 
@@ -194,3 +196,43 @@ def test_invalid_table_stays_paragraph():
 | Alice | 31 |""")
 
     assert rendered_html == "<p>| Name | Age |<br/>| --- |<br/>| Alice | 31 |</p>"
+
+
+@pytest.mark.parametrize(
+    "markdown_input,expected_output",
+    [
+        pytest.param(
+            "Check out https://example.com for more info",
+            '<p>Check out <a href="https://example.com">https://example.com</a> for more info</p>',
+            id="simple_https_url",
+        ),
+        pytest.param(
+            "Visit http://test.org",
+            '<p>Visit <a href="http://test.org">http://test.org</a></p>',
+            id="simple_http_url",
+        ),
+        pytest.param(
+            "Visit https://example.com and http://test.org",
+            '<p>Visit <a href="https://example.com">https://example.com</a> and <a href="http://test.org">http://test.org</a></p>',
+            id="multiple_urls",
+        ),
+        pytest.param(
+            "API at https://api.example.com/path?key=value&other=123",
+            '<p>API at <a href="https://api.example.com/path?key=value&amp;other=123">https://api.example.com/path?key=value&amp;other=123</a></p>',
+            id="url_with_query_params",
+        ),
+        pytest.param(
+            "See https://example.com/docs/guide#section",
+            '<p>See <a href="https://example.com/docs/guide#section">https://example.com/docs/guide#section</a></p>',
+            id="url_with_path_and_fragment",
+        ),
+        pytest.param(
+            "[Click here](https://example.com)",
+            '<p><a href="https://example.com">Click here</a></p>',
+            id="markdown_link_not_double_linkified",
+        ),
+    ],
+)
+def test_render_linkify(markdown_input, expected_output):
+    rendered_html = _render_markdown(markdown_input)
+    assert rendered_html == expected_output

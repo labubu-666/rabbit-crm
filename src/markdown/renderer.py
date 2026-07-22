@@ -1,95 +1,10 @@
 import html as html_module
-import importlib
-import re
-import logging
-import sys
 import os
+import re
+import sys
 
-from settings import Settings
-
-settings = Settings()
-
-logger = logging.getLogger(__name__)
-
-# Add current working directory to Python path to allow plugin discovery
-# This enables the CLI to find plugins in the directory where it's run
-cwd = settings.working_directory or os.getcwd()
-if cwd not in sys.path:
-    sys.path.insert(0, cwd)
-
-
-def _get_impl(module: str, name: str):
-    try:
-        module = importlib.import_module(module)
-        return getattr(module, name, None)
-    except ImportError as e:
-        logger.info(f"Plugin not found: {module}.{name} - using default implementation")
-        logger.debug(f"Import error details: {e}")
-        return None
-
-
-# headings
-def _repl_heading(m):
-    level = len(m.group(1))
-    content = m.group(2).strip()
-    return f"<h{level}>{content}</h{level}>"
-
-
-def _repl_link(m):
-    return f'<a href="{html_module.escape(m.group(2))}">{m.group(1)}</a>'
-
-
-def _repl_inline_code(m):
-    return f"<code>{m.group(1)}</code>"
-
-
-def _repl_block_code(m):
-    language = m.group(1) if m.group(1) else ""
-    code = m.group(2)
-    # Escape HTML in code content
-    code = html_module.escape(code)
-    if language:
-        return f'<pre><code class="language-{html_module.escape(language)}">{code}</code></pre>'
-    return f"<pre><code>{code}</code></pre>"
-
-
-# Lazy load plugins - cache them after first load
-_plugin_cache = {}
-
-
-def _get_plugin_impl(module: str, name: str, default_impl):
-    """Lazily load plugin implementation, falling back to default."""
-    cache_key = f"{module}.{name}"
-
-    if cache_key not in _plugin_cache:
-        impl = _get_impl(module, name)
-        _plugin_cache[cache_key] = impl if impl is not None else default_impl
-
-    return _plugin_cache[cache_key]
-
-
-def repl_heading(m):
-    impl = _get_plugin_impl("plugins.markdown.render", "repl_heading", _repl_heading)
-    return impl(m)
-
-
-def repl_link(m):
-    impl = _get_plugin_impl("plugins.markdown.render", "repl_link", _repl_link)
-    return impl(m)
-
-
-def repl_inline_code(m):
-    impl = _get_plugin_impl(
-        "plugins.markdown.render", "repl_inline_code", _repl_inline_code
-    )
-    return impl(m)
-
-
-def repl_block_code(m):
-    impl = _get_plugin_impl(
-        "plugins.markdown.render", "repl_block_code", _repl_block_code
-    )
-    return impl(m)
+from .plugins import repl_block_code, repl_heading, repl_inline_code, repl_link
+from .tables import render_table_block
 
 
 def _render_markdown(text: str, working_dir: str = None) -> str:
@@ -145,8 +60,9 @@ def _render_markdown(text: str, working_dir: str = None) -> str:
             def group(self, n):
                 if n == 1:
                     return None
-                elif n == 2:
+                if n == 2:
                     return dedented_code.rstrip("\n")
+                return None
 
         block_codes.append(TabCodeMatch())
         return placeholder
@@ -177,8 +93,16 @@ def _render_markdown(text: str, working_dir: str = None) -> str:
         text = text.replace(placeholder, repl_block_code(match))
 
     # paragraphs: split on two or more newlines
-    parts = re.split(r"\n\s*\n", text.strip())
-    parts = [p.replace("\n", "<br/>") for p in parts if p.strip()]
+    raw_parts = re.split(r"\n\s*\n", text.strip())
+    parts = []
+    for part in raw_parts:
+        if not part.strip():
+            continue
+        table_html = render_table_block(part)
+        if table_html is not None:
+            parts.append(table_html)
+        else:
+            parts.append(part.replace("\n", "<br/>"))
 
     # Don't wrap parts that are already block-level HTML (e.g. headings, lists, pre, blockquote, hr)
     block_start_re = re.compile(

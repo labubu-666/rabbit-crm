@@ -161,3 +161,36 @@ More text""")
     assert "print(&quot;indented&quot;)" in rendered_html
     # Should have two code blocks
     assert rendered_html.count("<pre><code") == 2
+
+
+def test_render_table():
+    rendered_html = _render_markdown("""| Name | Age |
+| --- | --- |
+| Alice | 31 |
+| Bob | 29 |""")
+
+    assert rendered_html == (
+        "<table><thead><tr><th>Name</th><th>Age</th></tr></thead>"
+        "<tbody><tr><td>Alice</td><td>31</td></tr><tr><td>Bob</td><td>29</td></tr></tbody></table>"
+    )
+
+
+def test_render_table_with_alignment():
+    rendered_html = _render_markdown("""| Name | Score | Rank |
+| :--- | :---: | ---: |
+| Alice | 92 | 1 |""")
+
+    assert rendered_html == (
+        '<table><thead><tr><th style="text-align:left">Name</th>'
+        '<th style="text-align:center">Score</th><th style="text-align:right">Rank</th></tr></thead>'
+        '<tbody><tr><td style="text-align:left">Alice</td>'
+        '<td style="text-align:center">92</td><td style="text-align:right">1</td></tr></tbody></table>'
+    )
+
+
+def test_invalid_table_stays_paragraph():
+    rendered_html = _render_markdown("""| Name | Age |
+| --- |
+| Alice | 31 |""")
+
+    assert rendered_html == "<p>| Name | Age |<br/>| --- |<br/>| Alice | 31 |</p>"

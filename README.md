@@ -17,9 +17,9 @@
 
 # Dev
 
-## Build natively
+## Run with
 
-    uv run rabbit build
+    uv run rabbit serve --working-dir integration-tests/knowledge-bases/hello-world --dev
 
 ## Remote install from git branch
 

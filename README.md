@@ -23,7 +23,7 @@
 
 ## Remote install from git branch
 
-    uv add git+ssh://git@github.com/labubu-666/rabbit.git@main
+    uv add git+ssh://git@github.com/labubu-666/rabbit-crm.git@main
 
 # Publish to PyPI
 

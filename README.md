@@ -10,16 +10,16 @@
 ## Serve
 
 ### By default , served from current directory
-    uv run rabbit serve
+    uv run rabbit-crm serve
 
 ### Specify directory with
-    uv run rabbit serve --working-dir integration-tests/knowledge-bases/hello-world
+    uv run rabbit-crm serve --working-dir integration-tests/knowledge-bases/hello-world
 
 # Dev
 
 ## Run with
 
-    uv run rabbit serve --working-dir integration-tests/knowledge-bases/hello-world --dev
+    uv run rabbit-crm serve --working-dir integration-tests/knowledge-bases/hello-world --dev
 
 ## Remote install from git branch
 

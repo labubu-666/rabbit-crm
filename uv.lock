@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.12"
 
 [manifest]
@@ -393,7 +393,7 @@ wheels = [
 
 [[package]]
 name = "hatchling"
-version = "1.29.0"
+version = "1.23.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "packaging" },
@@ -401,9 +401,9 @@ dependencies = [
     { name = "pluggy" },
     { name = "trove-classifiers" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/cf/9c/b4cfe330cd4f49cff17fd771154730555fa4123beb7f292cf0098b4e6c20/hatchling-1.29.0.tar.gz", hash = "sha256:793c31816d952cee405b83488ce001c719f325d9cda69f1fc4cd750527640ea6", size = 55656, upload-time = "2026-02-23T19:42:06.539Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5e/20/c111d360bc77e21e0d5d89861e1de93d3e2e1be4310a8dbc75f89363512f/hatchling-1.23.0.tar.gz", hash = "sha256:bca7bb8e449ff044bb74fbead333a6d8e87109cc0245dfc63f177eaeb3ebaa38", size = 63748, upload-time = "2024-04-14T21:48:04.584Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d3/8a/44032265776062a89171285ede55a0bdaadc8ac00f27f0512a71a9e3e1c8/hatchling-1.29.0-py3-none-any.whl", hash = "sha256:50af9343281f34785fab12da82e445ed987a6efb34fd8c2fc0f6e6630dbcc1b0", size = 76356, upload-time = "2026-02-23T19:42:05.197Z" },
+    { url = "https://files.pythonhosted.org/packages/b8/f3/565163cc52fe6c330ad59b17204701a85e0440af6b5463dc0613a93c4212/hatchling-1.23.0-py3-none-any.whl", hash = "sha256:4390c17d27e8360815f60ab149e461d2f143fe4ff7aa2e0185755dc07a3964b2", size = 82847, upload-time = "2024-04-14T21:48:02.143Z" },
 ]
 
 [[package]]
@@ -1050,6 +1050,7 @@ dependencies = [
 dev = [
     { name = "build" },
     { name = "hatch-vcs" },
+    { name = "hatchling" },
     { name = "httpx" },
     { name = "pre-commit" },
     { name = "pytest" },
@@ -1078,6 +1079,7 @@ requires-dist = [
 dev = [
     { name = "build", specifier = "==1.4.3" },
     { name = "hatch-vcs", specifier = "==0.5.0" },
+    { name = "hatchling", specifier = "==1.23.0" },
     { name = "httpx", specifier = "==0.28.1" },
     { name = "pre-commit", specifier = "==4.5.1" },
     { name = "pytest", specifier = "==9.0.3" },

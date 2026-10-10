@@ -166,7 +166,7 @@ class RebuildHandler(FileSystemEventHandler):
 
 @click.group()
 def cli():
-    """rabbit CLI entrypoint."""
+    """rabbit-crm CLI entrypoint."""
     pass
 
 
@@ -295,7 +295,7 @@ def serve(
         if not dist_path.exists():
             logger.error(
                 f"Dist directory '{dist_path}' does not exist. "
-                f"Run 'rabbit build' first or use 'rabbit serve --dev' to build and watch."
+                f"Run 'rabbit-crm build' first or use 'rabbit-crm serve --dev' to build and watch."
             )
             sys.exit(1)
         logger.info(f"Serving pre-built site from {dist_path}")

@@ -1,6 +1,6 @@
 services:
   example:
-    image: ghcr.io/labubu-666/rabbit:latest
+    image: ghcr.io/labubu-666/rabbit-crm:latest
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
     ports:

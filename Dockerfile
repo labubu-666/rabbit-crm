@@ -7,4 +7,4 @@ COPY README.md README.md
 
 RUN uv sync
 
-ENTRYPOINT ["uv", "run", "--directory", "integration-tests/wiki", "rabbit", "serve", "--host", "0.0.0.0"]
+ENTRYPOINT ["uv", "run", "--directory", "integration-tests/wiki", "rabbit-crm", "serve", "--host", "0.0.0.0"]

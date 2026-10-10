@@ -68,7 +68,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    docs_url="/api/docs", title="rabbit", version=__version__, lifespan=lifespan
+    docs_url="/api/docs", title="rabbit-crm", version=__version__, lifespan=lifespan
 )
 
 app.include_router(admin_router)

@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <article>
+        {% if articles %}
+        <ul>
+        {% for article in articles %}
+            <li><a href="/web/{{ article.path }}">{{ article.title }}</a></li>
+        {% endfor %}
+        </ul>
+
+        {% if total_count > limit %}
+        <nav>
+            <a href="?offset={{ offset - limit }}&limit={{ limit }}" {% if not has_prev %}disabled{% endif %}>← Previous</a>
+            <span>Page {{ (offset // limit) + 1 }} of {{ ((total_count + limit - 1) // limit) }}</span>
+            <a href="?offset={{ offset + limit }}&limit={{ limit }}" {% if not has_next %}disabled{% endif %}>Next →</a>
+        </nav>
+        {% endif %}
+        {% endif %}
+    </article>
+{% endblock %}

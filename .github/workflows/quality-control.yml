@@ -1,0 +1,84 @@
+name: quality-control
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+  pull_request_review_comment:
+    types: [created, edited]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  unit-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@v8.0.0
+        name: Setup uv
+
+      - name: Install dependencies
+        run: |
+          uv sync --dev
+          npm install sass -g
+          echo "$(npm config get prefix)/bin" >> $GITHUB_PATH
+
+      - name: Lint
+        run: |
+          uv run ruff format . --check
+
+      - name: Test
+        run: |
+          uv run pytest --cov-report html
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v7.0.1
+        if: always()
+        with:
+          name: coverage-report
+          path: htmlcov/
+          retention-days: 7
+
+  pre-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@v8.0.0
+        name: Setup uv
+
+      - name: Install dependencies
+        run: |
+          uv sync --dev
+
+      - name: Pre-deploy check
+        run: |
+          uv run python -m build
+          uv run twine check dist/*
+
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@v8.0.0
+        name: Setup uv
+
+      - name: Install dependencies
+        run: |
+          uv sync --dev
+          npm i sass -g
+          echo "$(npm config get prefix)/bin" >> $GITHUB_PATH
+
+      - name: Test
+        run: |
+          uv run rabbit build

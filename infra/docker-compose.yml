@@ -1,0 +1,22 @@
+services:
+  example:
+    image: ghcr.io/labubu-666/rabbit:latest
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    ports:
+      - "38311:80"
+  watchtower:
+    command: --debug --http-api-update
+    environment:
+      - WATCHTOWER_DEBUG=true
+      - WATCHTOWER_HTTP_API_TOKEN=mytoken
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_LABEL_ENABLE=true
+    image: nickfedor/watchtower:1.16.1
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    ports:
+      - "18181:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ~/.docker/config.json:/config.json

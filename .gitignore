@@ -1,0 +1,15 @@
+# IDE
+.idea/
+
+# Project specific
+__pycache__/
+.sass-cache/
+.venv/
+dist/
+htmlcov/
+
+.coverage
+.env
+coverage.md
+rabbit.iml
+src/_version.py

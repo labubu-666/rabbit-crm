@@ -1,0 +1,60 @@
+[project]
+name = "rabbit-crm"
+dynamic = ["version"]
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "checksumdir==1.3.0",
+    "click==8.3.2",
+    "fastapi==0.135.3",
+    "jinja2==3.1.6",
+    "logfmter==0.0.12",
+    "pydantic==2.13.0",
+    "pydantic-settings==2.13.1",
+    "python-dotenv>=1.2.2",
+    "python-multipart==0.0.26",
+    "pyyaml==6.0.3",
+    "uvicorn[standard]==0.44.0",
+    "watchdog[watchmedo]==6.0.0",
+]
+
+[project.scripts]
+rabbit = "src.main:cli"
+
+[build-system]
+requires = ["hatchling==1.23.0", "hatch-vcs==0.5.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+raw-options = { local_scheme = "no-local-version" }
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[dependency-groups]
+dev = [
+    "build==1.4.3",
+    "hatch-vcs==0.5.0",
+    "hatchling==1.23.0",
+    "httpx==0.28.1",
+    "pre-commit==4.5.1",
+    "pytest==9.0.3",
+    "pytest-cov==7.1.0",
+    "ruff==0.15.10",
+    "twine==6.2.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+addopts = ["-vvv", "--cov=src"]
+
+[tool.uv.workspace]
+members = [
+    "integration-tests/knowledge-bases/rabbit-docs",
+    "integration-tests/knowledge-bases/hello-world",
+]

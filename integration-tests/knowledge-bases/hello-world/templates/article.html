@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/web{{ css_path }}">
+    <title>{{ title }}</title>
+</head>
+<body>
+<header>
+    wiki
+</header>
+<h1 class="title">{{ title }}</h1>
+<article>
+  {{ content | safe }}
+</article>
+<footer>
+    v0.0.0
+</footer>
+</body>
+</html>
